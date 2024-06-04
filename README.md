@@ -1,16 +1,12 @@
-# youtube_audio_extractor
+# 앱이름
+미정
+## 설명
+모바일에서 유튜브 오디오 추출을 하는 앱.  
+하지만 비디오도 추출 가능하다. (몰라서 프로젝트 네임도 오디오 추출기로 한 것.)
 
-A new Flutter project.
 
-## Getting Started
 
-This project is a starting point for a Flutter application.
+## UI
+![image 14](https://github.com/Chun-Bae/YoutubeAudioExtractor/assets/69321105/c5ac314e-9162-4c0e-8294-f36f8271ba79)
 
-A few resources to get you started if this is your first Flutter project:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
