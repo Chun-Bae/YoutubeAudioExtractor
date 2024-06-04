@@ -26,7 +26,7 @@ Widget TimeIntervalInput({
         style: TextStyle(color: Colors.white),
         enabled: isSegmentEnabled,
         inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp(r'^([0-5]?[0-9]|60)$')),
+          FilteringTextInputFormatter.allow(RegExp(r'^([0-5]?[0-9])$')),
         ],
       ),
     ),
