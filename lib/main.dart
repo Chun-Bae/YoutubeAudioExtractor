@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 void main() {
   runApp(HomePageWidget());
@@ -14,6 +15,38 @@ class HomePageWidget extends StatelessWidget {
   }
 }
 
+Widget TimeIntervalInput({
+  required bool isSegmentEnabled,
+  required TextEditingController timeController,
+}) {
+  return Expanded(
+    child: Opacity(
+      opacity: isSegmentEnabled ? 1.0 : 0.5,
+      child: TextField(
+        controller: timeController,
+        textAlign: TextAlign.center,
+        decoration: InputDecoration(
+          hintText: '00',
+          enabledBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.white, width: 3.0),
+          ),
+          focusedBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: Color(0xFFFF5963), width: 3.0),
+          ),
+          disabledBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.white, width: 3.0),
+          ),
+        ),
+        style: TextStyle(color: Colors.white),
+        enabled: isSegmentEnabled,
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'^([0-5]?[0-9]|60)$')),
+        ],
+      ),
+    ),
+  );
+}
+
 class HomeScreen extends StatefulWidget {
   @override
   _HomeScreenState createState() => _HomeScreenState();
@@ -21,18 +54,23 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   TextEditingController _urlController = TextEditingController();
-  TextEditingController _startTimeController =
-      TextEditingController(text: '00');
-  TextEditingController _endTimeController = TextEditingController(text: '00');
+
+  final List<TextEditingController> _startTimeControllers = [
+    TextEditingController(text: '00'),
+    TextEditingController(text: '00'),
+    TextEditingController(text: '00'),
+  ];
+  final List<TextEditingController> _endTimeControllers = [
+    TextEditingController(text: '00'),
+    TextEditingController(text: '00'),
+    TextEditingController(text: '00'),
+  ];
+
   bool _isSegmentEnabled = false;
 
   void _toggleSegment(bool value) {
     setState(() {
       _isSegmentEnabled = value;
-      if (!value) {
-        _startTimeController.text = '00';
-        _endTimeController.text = '00';
-      }
     });
   }
 
@@ -108,189 +146,57 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                Expanded(
-                  child: Opacity(
-                    opacity: _isSegmentEnabled ? 1.0 : 0.5,
-                    child: TextField(
-                      controller: _startTimeController,
-                      textAlign: TextAlign.center,
-                      decoration: InputDecoration(
-                        hintText: '00',
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.white, width: 3.0),
-                        ),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Color(0xFFFF5963), width: 3.0),
-                        ),
-                        disabledBorder: UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.white, width: 3.0),
-                        ),
-                      ),
-                      style: TextStyle(color: Colors.white), // 입력 텍스트 색상 설정
-                      enabled: _isSegmentEnabled, // 활성화/비활성화
-                    ),
-                  ),
+                TimeIntervalInput(
+                  isSegmentEnabled: _isSegmentEnabled,
+                  timeController: _startTimeControllers[0],
                 ),
                 SizedBox(width: 8),
                 Text(
                   ':',
-                  style: TextStyle(color: Colors.white), // 콜론 텍스트 색상 설정
+                  style: TextStyle(color: Colors.white),
                 ),
-                Expanded(
-                  child: Opacity(
-                    opacity: _isSegmentEnabled ? 1.0 : 0.5,
-                    child: TextField(
-                      controller: _startTimeController,
-                      textAlign: TextAlign.center,
-                      decoration: InputDecoration(
-                        hintText: '00',
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.white, width: 3.0),
-                        ),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Color(0xFFFF5963), width: 3.0),
-                        ),
-                        disabledBorder: UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.white, width: 3.0),
-                        ),
-                      ),
-                      style: TextStyle(color: Colors.white), // 입력 텍스트 색상 설정
-                      enabled: _isSegmentEnabled, // 활성화/비활성화
-                    ),
-                  ),
+                TimeIntervalInput(
+                  isSegmentEnabled: _isSegmentEnabled,
+                  timeController: _startTimeControllers[1],
                 ),
                 SizedBox(width: 8),
                 Text(
                   ':',
-                  style: TextStyle(color: Colors.white), // 콜론 텍스트 색상 설정
+                  style: TextStyle(color: Colors.white),
                 ),
                 SizedBox(width: 8),
-                Expanded(
-                  child: Opacity(
-                    opacity: _isSegmentEnabled ? 1.0 : 0.5,
-                    child: TextField(
-                      controller: _startTimeController,
-                      textAlign: TextAlign.center,
-                      decoration: InputDecoration(
-                        hintText: '00',
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.white, width: 3.0),
-                        ),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Color(0xFFFF5963), width: 3.0),
-                        ),
-                        disabledBorder: UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.white, width: 3.0),
-                        ),
-                      ),
-                      style: TextStyle(color: Colors.white), // 입력 텍스트 색상 설정
-                      enabled: _isSegmentEnabled, // 활성화/비활성화
-                    ),
-                  ),
+                TimeIntervalInput(
+                  isSegmentEnabled: _isSegmentEnabled,
+                  timeController: _startTimeControllers[2],
                 ),
                 SizedBox(width: 8),
                 Text(
                   '~',
-                  style: TextStyle(color: Colors.white), // 물결 텍스트 색상 설정
+                  style: TextStyle(color: Colors.white),
                 ),
-                Expanded(
-                  child: Opacity(
-                    opacity: _isSegmentEnabled ? 1.0 : 0.5,
-                    child: TextField(
-                      controller: _startTimeController,
-                      textAlign: TextAlign.center,
-                      decoration: InputDecoration(
-                        hintText: '00',
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.white, width: 3.0),
-                        ),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Color(0xFFFF5963), width: 3.0),
-                        ),
-                        disabledBorder: UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.white, width: 3.0),
-                        ),
-                      ),
-                      style: TextStyle(color: Colors.white), // 입력 텍스트 색상 설정
-                      enabled: _isSegmentEnabled, // 활성화/비활성화
-                    ),
-                  ),
+                TimeIntervalInput(
+                  isSegmentEnabled: _isSegmentEnabled,
+                  timeController: _endTimeControllers[0],
                 ),
                 SizedBox(width: 8),
                 Text(
                   ':',
-                  style: TextStyle(color: Colors.white), // 콜론 텍스트 색상 설정
+                  style: TextStyle(color: Colors.white),
                 ),
                 SizedBox(width: 8),
-                Expanded(
-                  child: Opacity(
-                    opacity: _isSegmentEnabled ? 1.0 : 0.5,
-                    child: TextField(
-                      controller: _startTimeController,
-                      textAlign: TextAlign.center,
-                      decoration: InputDecoration(
-                        hintText: '00',
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.white, width: 3.0),
-                        ),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Color(0xFFFF5963), width: 3.0),
-                        ),
-                        disabledBorder: UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.white, width: 3.0),
-                        ),
-                      ),
-                      style: TextStyle(color: Colors.white), // 입력 텍스트 색상 설정
-                      enabled: _isSegmentEnabled, // 활성화/비활성화
-                    ),
-                  ),
+                TimeIntervalInput(
+                  isSegmentEnabled: _isSegmentEnabled,
+                  timeController: _endTimeControllers[1],
                 ),
                 SizedBox(width: 8),
                 Text(
                   ':',
-                  style: TextStyle(color: Colors.white), // 콜론 텍스트 색상 설정
+                  style: TextStyle(color: Colors.white),
                 ),
                 SizedBox(width: 8),
-                Expanded(
-                  child: Opacity(
-                    opacity: _isSegmentEnabled ? 1.0 : 0.5,
-                    child: TextField(
-                      controller: _startTimeController,
-                      textAlign: TextAlign.center,
-                      decoration: InputDecoration(
-                        hintText: '00',
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.white, width: 3.0),
-                        ),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Color(0xFFFF5963), width: 3.0),
-                        ),
-                        disabledBorder: UnderlineInputBorder(
-                          borderSide:
-                              BorderSide(color: Colors.white, width: 3.0),
-                        ),
-                      ),
-                      style: TextStyle(color: Colors.white), // 입력 텍스트 색상 설정
-                      enabled: _isSegmentEnabled, // 활성화/비활성화
-                    ),
-                  ),
+                TimeIntervalInput(
+                  isSegmentEnabled: _isSegmentEnabled,
+                  timeController: _endTimeControllers[2],
                 ),
               ],
             ),
@@ -314,17 +220,60 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               dropdownColor: Color(0xFF14181B), // 드롭다운 배경색 설정
-              items: ['MP4', 'MP3'].map((String value) {
-                return DropdownMenuItem<String>(
-                  value: value,
-                  child: Text(value,
-                      style: TextStyle(color: Colors.white)), // 드롭다운 텍스트 색상 설정
-                );
-              }).toList(),
+              items: [
+                DropdownMenuItem<String>(
+                  value: "video",
+                  enabled: false,
+                  child: Text(
+                    "비디오 포맷",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+                ...[
+                  'MP4',
+                  'AVI',
+                  'MKV',
+                  'MOV',
+                  'FLV',
+                  'WMV',
+                  'MPEG',
+                  'WEBM',
+                  'OGV',
+                  'TS'
+                ].map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value,
+                        style:
+                            TextStyle(color: Colors.white)), // 드롭다운 텍스트 색상 설정
+                  );
+                }).toList(),
+                DropdownMenuItem<String>(
+                  value: "audio",
+                  enabled: false,
+                  child: Text(
+                    "오디오 포맷",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+                ...['MP3', 'WAV', 'AAC', 'FLAC', 'OGG', 'M4A', 'WMA', 'OPUS']
+                    .map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value,
+                        style:
+                            TextStyle(color: Colors.white)), // 드롭다운 텍스트 색상 설정
+                  );
+                }).toList(),
+              ],
               iconEnabledColor: Color(0xFFFF5963), // 드롭다운 화살표 색상 설정
-              onChanged: (newValue) {},
-              hint: Text('MP4',
-                  style: TextStyle(color: Colors.white)), // 힌트 텍스트 색상 설정
+              onChanged: (newValue) {
+                // 선택된 값 처리
+              },
+              hint: Text(
+                'Select Format',
+                style: TextStyle(color: Colors.white), // 힌트 텍스트 색상 설정
+              ),
             ),
             SizedBox(height: 16),
             ElevatedButton(
