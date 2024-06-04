@@ -5,6 +5,20 @@ Widget TimeIntervalInput({
   required bool isSegmentEnabled,
   required TextEditingController timeController,
 }) {
+  // FocusNode 인스턴스 생성
+  FocusNode timeFocusNode = FocusNode();
+
+// 포커스 상태 변경 이벤트 리스너 추가
+  timeFocusNode.addListener(() {
+    if (!timeFocusNode.hasFocus) {
+      // 포커스가 끝났을 때
+      if (timeController.text.isEmpty) {
+        // 텍스트 필드가 비어있으면 '00'으로 설정
+        timeController.text = '00';
+      }
+    }
+  });
+  
   return Expanded(
     child: Opacity(
       opacity: isSegmentEnabled ? 1.0 : 0.5,
@@ -28,6 +42,7 @@ Widget TimeIntervalInput({
         inputFormatters: [
           FilteringTextInputFormatter.allow(RegExp(r'^([0-5]?[0-9])$')),
         ],
+        focusNode: timeFocusNode,
       ),
     ),
   );
