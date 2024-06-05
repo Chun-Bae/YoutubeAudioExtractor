@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/TextField/TimeIntervalInput.dart';
 import '../widgets/Button/WidthFullButton.dart';
+import '../widgets/Dropdown/FormatDropdownMenu.dart';
+import '../widgets/Dialog/InvalidTimeRangeDialog.dart';
 import '../../services/time_validation.dart';
 
 class ExtractPage extends StatefulWidget {
@@ -10,7 +12,30 @@ class ExtractPage extends StatefulWidget {
 
 class _ExtractPageState extends State<ExtractPage> {
   TextEditingController _urlController = TextEditingController();
-
+  final List<String> audioFormats = [
+    'MP3',
+    'WAV',
+    'FLAC',
+    'AAC',
+    'WMA',
+    'OGG',
+    'M4A',
+    'AMR',
+    'AIFF',
+    'AU'
+  ];
+  final List<String> videoFormats = [
+    'MP4',
+    'AVI',
+    'MKV',
+    'MOV',
+    'FLV',
+    'WMV',
+    'MPEG',
+    'WEBM',
+    'OGV',
+    'TS'
+  ];
   final List<TextEditingController> _startTimeControllers = [
     TextEditingController(text: '00'),
     TextEditingController(text: '00'),
@@ -68,6 +93,9 @@ class _ExtractPageState extends State<ExtractPage> {
                 ),
                 focusedBorder: UnderlineInputBorder(
                   borderSide: BorderSide(color: Color(0xFFFF5963)),
+                ),
+                disabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white, width: 3.0),
                 ),
               ),
               style: TextStyle(color: Colors.white), // 입력 텍스트 색상 설정
@@ -177,58 +205,24 @@ class _ExtractPageState extends State<ExtractPage> {
               ),
               dropdownColor: Color(0xFF14181B), // 드롭다운 배경색 설정
               items: [
-                DropdownMenuItem<String>(
-                  value: "video",
-                  enabled: false,
-                  child: Text(
-                    "비디오 포맷",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-                ...[
-                  'MP4',
-                  'AVI',
-                  'MKV',
-                  'MOV',
-                  'FLV',
-                  'WMV',
-                  'MPEG',
-                  'WEBM',
-                  'OGV',
-                  'TS'
-                ].map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value,
-                        style:
-                            TextStyle(color: Colors.white)), // 드롭다운 텍스트 색상 설정
-                  );
-                }).toList(),
-                DropdownMenuItem<String>(
-                  value: "audio",
-                  enabled: false,
-                  child: Text(
-                    "오디오 포맷",
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ),
-                ...['MP3', 'WAV', 'AAC', 'FLAC', 'OGG', 'M4A', 'WMA', 'OPUS']
-                    .map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value,
-                        style:
-                            TextStyle(color: Colors.white)), // 드롭다운 텍스트 색상 설정
-                  );
-                }).toList(),
+                ...FormatDropdownMenu(
+                        categoryName: '비디오 포맷',
+                        items: audioFormats,
+                        value: 'video')
+                    .getDropdownMenuItems(),
+                ...FormatDropdownMenu(
+                        categoryName: '비디오 포맷',
+                        items: videoFormats,
+                        value: 'video')
+                    .getDropdownMenuItems(),
               ],
-              iconEnabledColor: Color(0xFFFF5963), // 드롭다운 화살표 색상 설정
+              iconEnabledColor: Color(0xFFFF5963),
               onChanged: (newValue) {
                 // 선택된 값 처리
               },
               hint: Text(
                 'Select Format',
-                style: TextStyle(color: Colors.white), // 힌트 텍스트 색상 설정
+                style: TextStyle(color: Colors.white),
               ),
             ),
             SizedBox(height: 16),
@@ -244,47 +238,7 @@ class _ExtractPageState extends State<ExtractPage> {
                   return showDialog(
                     context: context,
                     builder: (BuildContext context) {
-                      return AlertDialog(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        backgroundColor: Color(0xFF0E0E0E),
-                        surfaceTintColor: Color(0xFF0E0E0E),
-                        contentPadding: EdgeInsets.all(30),
-                        content: Text(
-                          '구간이 잘못됐습니다!',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        actions: <Widget>[
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Color(0xFFFF5963),
-                                    minimumSize: Size(double.infinity, 35),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    '확인',
-                                    style: TextStyle(color: Colors.white),
-                                  ),
-                                  onPressed: () {
-                                    Navigator.of(context).pop();
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      );
+                      return InvalidTimeRangeDialog(context);
                     },
                   );
                 }
