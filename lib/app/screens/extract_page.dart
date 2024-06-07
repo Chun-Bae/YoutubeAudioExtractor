@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import '../widgets/TextField/TimeIntervalInput.dart';
 import '../widgets/Button/WidthFullButton.dart';
 import '../widgets/Dropdown/FormatDropdownMenu.dart';
@@ -7,6 +6,15 @@ import '../../services/time_validation.dart';
 import '../../services/video_service.dart';
 import '../../services/ffmpeg_service.dart';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
+
+
+
 class ExtractPage extends StatefulWidget {
   @override
   _ExtractPageState createState() => _ExtractPageState();
@@ -14,6 +22,7 @@ class ExtractPage extends StatefulWidget {
 
 class _ExtractPageState extends State<ExtractPage> {
   TextEditingController _urlController = TextEditingController();
+  TextEditingController _downloadedFilePathController = TextEditingController();
   final List<String> audioFormats = [
     'MP3',
     'WAV',
@@ -41,15 +50,49 @@ class _ExtractPageState extends State<ExtractPage> {
   final List<TextEditingController> _startTimeControllers = [
     TextEditingController(text: '00'),
     TextEditingController(text: '00'),
-    TextEditingController(text: '00'),
+    TextEditingController(text: '00')
   ];
   final List<TextEditingController> _endTimeControllers = [
     TextEditingController(text: '00'),
     TextEditingController(text: '00'),
-    TextEditingController(text: '00'),
+    TextEditingController(text: '00')
   ];
-
   bool _isSegmentEnabled = false;
+  late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+  late String downloadedFilePath;
+  List<String> _logs = []; // 로그 메시지를 저장할 리스트
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _requestPermissions();
+    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    const initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const initializationSettingsIOS = DarwinInitializationSettings();
+    const initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsIOS,
+    );
+    flutterLocalNotificationsPlugin.initialize(initializationSettings,
+        onDidReceiveNotificationResponse:
+            (NotificationResponse notificationResponse) async {
+      if (notificationResponse.payload != null) {
+        await _openDownloadDirectory();
+      }
+    });
+  }
+
+  Future<void> _requestPermissions() async {
+    if (await Permission.storage.request().isGranted) {
+      // 권한이 승인되었습니다.
+      _log('Storage permission granted.');
+    } else {
+      // 권한이 거부되었습니다.
+      _log('Storage permission denied.');
+    }
+  }
 
   void _toggleSegment(bool value) {
     setState(() {
@@ -57,16 +100,164 @@ class _ExtractPageState extends State<ExtractPage> {
     });
   }
 
+  Future<void> _showNotification(
+      String title, String body, String directoryPath) async {
+    const androidPlatformChannelSpecifics = AndroidNotificationDetails(
+        'your_channel_id', 'your_channel_name',
+        channelDescription: 'your_channel_description',
+        importance: Importance.max,
+        priority: Priority.high,
+        showWhen: false);
+    const iOSPlatformChannelSpecifics = DarwinNotificationDetails();
+    const platformChannelSpecifics = NotificationDetails(
+        android: androidPlatformChannelSpecifics,
+        iOS: iOSPlatformChannelSpecifics);
+    await flutterLocalNotificationsPlugin
+        .show(0, title, body, platformChannelSpecifics, payload: directoryPath);
+  }
+
+  Future<void> _openDownloadDirectory() async {
+    try {
+      Directory? directory = await getExternalStorageDirectory();
+      if (directory == null) {
+        _log("Could not get the external storage directory");
+        return;
+      }
+
+      String documentsPath = '${directory.path}/Documents';
+      Directory documentsDirectory = Directory(documentsPath);
+
+      if (await documentsDirectory.exists()) {
+        _log('Directory exists: $documentsPath');
+      } else {
+        _log('Directory does not exist: $documentsPath');
+        await documentsDirectory.create(recursive: true);
+        _log('Directory created: $documentsPath');
+      }
+
+      // Use FilePicker to open the directory picker starting at the Documents directory
+      String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+      if (selectedDirectory != null) {
+        _log('Directory selected: $selectedDirectory');
+      } else {
+        _log('User canceled the picker');
+      }
+    } catch (e) {
+      _log("Could not open directory: $e");
+    }
+  }
+
+  Future<void> _downloadVideo() async {
+    if (TimeValidationService().isStartTimeBeforeEndTime(
+      startControllers: _startTimeControllers,
+      endControllers: _endTimeControllers,
+    )) {
+      _log("Time validation passed");
+      VideoService videoService = VideoService();
+      FFmpegService ffmpegService = FFmpegService();
+
+      _log("Starting video download");
+      await videoService
+          .downloadYouTubeVideo(_urlController.text)
+          .catchError((e) {
+        _log("Video download error: $e");
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text("Error"),
+              content: Text("Video download error: $e"),
+              actions: <Widget>[
+                TextButton(
+                  child: Text("OK"),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      });
+      _log("Video download completed");
+
+      setState(() {
+        downloadedFilePath = videoService.downloadedFilePath;
+        _downloadedFilePathController.text = downloadedFilePath;
+      });
+
+      final directoryPath =
+          downloadedFilePath.substring(0, downloadedFilePath.lastIndexOf('/'));
+      await _showNotification("Download Complete",
+          "The video has been downloaded successfully.", directoryPath);
+
+      _log("Starting video segment extraction");
+      await ffmpegService
+          .extractVideoSegment(
+              '00:00:10', '00:00:30'.toString().split('.').first)
+          .catchError((e) {
+        _log("Video segment extraction error: $e");
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text("Error"),
+              content: Text("Video segment extraction error: $e"),
+              actions: <Widget>[
+                TextButton(
+                  child: Text("OK"),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      });
+      _log("Video segment extraction completed");
+
+      await _showNotification("Extraction Complete",
+          "The video segment has been extracted successfully.", directoryPath);
+
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return InvalidTimeRangeDialog(context);
+        },
+      );
+    } else {
+      _log("Time validation failed");
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return InvalidTimeRangeDialog(context);
+        },
+      );
+    }
+  }
+
+  void _log(String message) {
+    setState(() {
+      _logs.add(message);
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF14181B), // 배경색 설정
+      backgroundColor: const Color(0xFF14181B), // 배경색 설정
       appBar: AppBar(
-        backgroundColor: Color(0xFF14181B), // 앱바 배경색 설정
-        title: Text(
+        backgroundColor: const Color(0xFF14181B),
+        title: const Text(
           '환영해요!',
           style: TextStyle(
-            color: Colors.white, // 텍스트 색상 설정
+            color: Colors.white,
             fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
@@ -77,20 +268,20 @@ class _ExtractPageState extends State<ExtractPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               '오디오를 추출해보세요!',
               style: TextStyle(
-                color: Colors.white, // 텍스트 색상 설정
+                color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             TextField(
               controller: _urlController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Input Youtube URL...',
-                labelStyle: TextStyle(color: Colors.white), // 라벨 텍스트 색상 설정
+                labelStyle: TextStyle(color: Colors.white),
                 enabledBorder: UnderlineInputBorder(
                   borderSide: BorderSide(color: Colors.white),
                 ),
@@ -101,14 +292,33 @@ class _ExtractPageState extends State<ExtractPage> {
                   borderSide: BorderSide(color: Colors.white, width: 3.0),
                 ),
               ),
-              style: TextStyle(color: Colors.white), // 입력 텍스트 색상 설정
+              style: const TextStyle(color: Colors.white),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _downloadedFilePathController,
+              readOnly: true,
+              decoration: const InputDecoration(
+                labelText: 'Downloaded File Path...',
+                labelStyle: TextStyle(color: Colors.white),
+                enabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white),
+                ),
+                focusedBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Color(0xFFFF5963)),
+                ),
+                disabledBorder: UnderlineInputBorder(
+                  borderSide: BorderSide(color: Colors.white, width: 3.0),
+                ),
+              ),
+              style: const TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Row(
-                  children: [
+                  children: const [
                     Icon(Icons.timer_rounded, color: Color(0xFFFF5963)),
                     SizedBox(width: 2),
                     Text(
@@ -117,16 +327,16 @@ class _ExtractPageState extends State<ExtractPage> {
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                      ), // 텍스트 색상 설정
+                      ),
                     ),
                   ],
                 ),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 Switch(
                   value: _isSegmentEnabled,
                   onChanged: _toggleSegment,
-                  activeColor: Color(0xFFFF5963),
-                  inactiveTrackColor: Color(0xFF14181B),
+                  activeColor: const Color(0xFFFF5963),
+                  inactiveTrackColor: const Color(0xFF14181B),
                 ),
               ],
             ),
@@ -137,8 +347,8 @@ class _ExtractPageState extends State<ExtractPage> {
                   isSegmentEnabled: _isSegmentEnabled,
                   timeController: _startTimeControllers[0],
                 ),
-                SizedBox(width: 8),
-                Text(
+                const SizedBox(width: 8),
+                const Text(
                   ':',
                   style: TextStyle(color: Colors.white),
                 ),
@@ -146,18 +356,18 @@ class _ExtractPageState extends State<ExtractPage> {
                   isSegmentEnabled: _isSegmentEnabled,
                   timeController: _startTimeControllers[1],
                 ),
-                SizedBox(width: 8),
-                Text(
+                const SizedBox(width: 8),
+                const Text(
                   ':',
                   style: TextStyle(color: Colors.white),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 TimeIntervalInput(
                   isSegmentEnabled: _isSegmentEnabled,
                   timeController: _startTimeControllers[2],
                 ),
-                SizedBox(width: 8),
-                Text(
+                const SizedBox(width: 8),
+                const Text(
                   '~',
                   style: TextStyle(color: Colors.white),
                 ),
@@ -165,48 +375,45 @@ class _ExtractPageState extends State<ExtractPage> {
                   isSegmentEnabled: _isSegmentEnabled,
                   timeController: _endTimeControllers[0],
                 ),
-                SizedBox(width: 8),
-                Text(
+                const SizedBox(width: 8),
+                const Text(
                   ':',
                   style: TextStyle(color: Colors.white),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 TimeIntervalInput(
                   isSegmentEnabled: _isSegmentEnabled,
                   timeController: _endTimeControllers[1],
                 ),
-                SizedBox(width: 8),
-                Text(
+                const SizedBox(width: 8),
+                const Text(
                   ':',
                   style: TextStyle(color: Colors.white),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 TimeIntervalInput(
                   isSegmentEnabled: _isSegmentEnabled,
                   timeController: _endTimeControllers[2],
                 ),
               ],
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             DropdownButtonFormField<String>(
               decoration: InputDecoration(
                 enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(
-                      color: Colors.white, width: 3.0), // 활성화 상태 테두리 색상
+                  borderSide: BorderSide(color: Colors.white, width: 3.0),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(
-                      color: Colors.white, width: 3.0), // 포커스 상태 테두리 색상
+                  borderSide: BorderSide(color: Colors.white, width: 3.0),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 border: UnderlineInputBorder(
-                  borderSide: BorderSide(
-                      color: Colors.white, width: 3.0), // 기본 상태 테두리 색상
+                  borderSide: BorderSide(color: Colors.white, width: 3.0),
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              dropdownColor: Color(0xFF14181B), // 드롭다운 배경색 설정
+              dropdownColor: const Color(0xFF14181B),
               items: [
                 ...FormatDropdownMenu(
                         categoryName: '비디오 포맷',
@@ -219,50 +426,34 @@ class _ExtractPageState extends State<ExtractPage> {
                         value: 'video')
                     .getDropdownMenuItems(),
               ],
-              iconEnabledColor: Color(0xFFFF5963),
+              iconEnabledColor: const Color(0xFFFF5963),
               onChanged: (newValue) {
                 // 선택된 값 처리
               },
-              hint: Text(
+              hint: const Text(
                 'Select Format',
                 style: TextStyle(color: Colors.white),
               ),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             WidthFullButton(
               text: '추출',
               onPressed: () async {
-                if (TimeValidationService().isStartTimeBeforeEndTime(
-                  startControllers: _startTimeControllers,
-                  endControllers: _endTimeControllers,
-                )) {
-                  VideoService videoService = VideoService();
-                  FFmpegService ffmpegService = FFmpegService();
-
-                  await videoService.downloadYouTubeVideo(_urlController.text);
-                  await ffmpegService.extractVideoSegment(
-                      '00:00:10',
-                      '00:00:30'.toString().split('.').first);
-                  return showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return InvalidTimeRangeDialog(context);
-                    },
-                  );
-                } else {
-                  return showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return InvalidTimeRangeDialog(context);
-                    },
-                  );
-                }
+                await _downloadVideo();
               },
             ),
-            SizedBox(height: 16),
-            WidthFullButton(
-              text: 'Download',
-              onPressed: () {},
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.builder(
+                controller: _scrollController,
+                itemCount: _logs.length,
+                itemBuilder: (context, index) {
+                  return Text(
+                    _logs[index],
+                    style: const TextStyle(color: Colors.white),
+                  );
+                },
+              ),
             ),
           ],
         ),
