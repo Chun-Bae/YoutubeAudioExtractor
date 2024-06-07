@@ -4,6 +4,8 @@ import '../widgets/Button/WidthFullButton.dart';
 import '../widgets/Dropdown/FormatDropdownMenu.dart';
 import '../widgets/Dialog/InvalidTimeRangeDialog.dart';
 import '../../services/time_validation.dart';
+import '../../services/video_service.dart';
+import '../../services/ffmpeg_service.dart';
 
 class ExtractPage extends StatefulWidget {
   @override
@@ -85,6 +87,7 @@ class _ExtractPageState extends State<ExtractPage> {
             ),
             SizedBox(height: 16),
             TextField(
+              controller: _urlController,
               decoration: InputDecoration(
                 labelText: 'Input Youtube URL...',
                 labelStyle: TextStyle(color: Colors.white), // 라벨 텍스트 색상 설정
@@ -228,12 +231,24 @@ class _ExtractPageState extends State<ExtractPage> {
             SizedBox(height: 16),
             WidthFullButton(
               text: '추출',
-              onPressed: () {
+              onPressed: () async {
                 if (TimeValidationService().isStartTimeBeforeEndTime(
                   startControllers: _startTimeControllers,
                   endControllers: _endTimeControllers,
                 )) {
-                  // 추출 로직
+                  VideoService videoService = VideoService();
+                  FFmpegService ffmpegService = FFmpegService();
+
+                  await videoService.downloadYouTubeVideo(_urlController.text);
+                  await ffmpegService.extractVideoSegment(
+                      '00:00:10',
+                      '00:00:30'.toString().split('.').first);
+                  return showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return InvalidTimeRangeDialog(context);
+                    },
+                  );
                 } else {
                   return showDialog(
                     context: context,
