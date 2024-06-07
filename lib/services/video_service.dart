@@ -1,11 +1,10 @@
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
-import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
 class VideoService {
   late String downloadedFilePath;
 
-  Future<void> downloadYouTubeVideo(String videoUrl) async {
+  Future<void> downloadYouTubeVideo(String videoUrl, Function(double) onProgress) async {
     print('Starting video download');
 
     var yt = YoutubeExplode();
@@ -31,7 +30,18 @@ class VideoService {
 
     var file = File(downloadedFilePath);
     var output = file.openWrite();
-    await stream.pipe(output);
+
+    int totalBytes = streamInfo.size.totalBytes;
+    int downloadedBytes = 0;
+
+    await for (var data in stream) {
+      output.add(data);
+      downloadedBytes += data.length;
+      double progress = downloadedBytes / totalBytes;
+      // 진행률 업데이트 콜백 호출
+      onProgress(progress);
+    }
+
     await output.flush();
     await output.close();
     yt.close();

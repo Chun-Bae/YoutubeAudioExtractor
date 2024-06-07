@@ -13,8 +13,6 @@ import 'package:file_picker/file_picker.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
-
-
 class ExtractPage extends StatefulWidget {
   @override
   _ExtractPageState createState() => _ExtractPageState();
@@ -62,6 +60,9 @@ class _ExtractPageState extends State<ExtractPage> {
   late String downloadedFilePath;
   List<String> _logs = []; // 로그 메시지를 저장할 리스트
   final ScrollController _scrollController = ScrollController();
+
+  bool _isExtracting = false;
+  double _progress = 0.0;
 
   @override
   void initState() {
@@ -156,10 +157,17 @@ class _ExtractPageState extends State<ExtractPage> {
       VideoService videoService = VideoService();
       FFmpegService ffmpegService = FFmpegService();
 
+      setState(() {
+        _isExtracting = true;
+        _progress = 0.0;
+      });
+
       _log("Starting video download");
-      await videoService
-          .downloadYouTubeVideo(_urlController.text)
-          .catchError((e) {
+      await videoService.downloadYouTubeVideo(_urlController.text, (progress) {
+        setState(() {
+          _progress = progress;
+        });
+      }).catchError((e) {
         _log("Video download error: $e");
         showDialog(
           context: context,
@@ -184,6 +192,7 @@ class _ExtractPageState extends State<ExtractPage> {
       setState(() {
         downloadedFilePath = videoService.downloadedFilePath;
         _downloadedFilePathController.text = downloadedFilePath;
+        _progress = 0.5; // 다운로드 완료 후 중간 진행률 설정
       });
 
       final directoryPath =
@@ -217,15 +226,13 @@ class _ExtractPageState extends State<ExtractPage> {
       });
       _log("Video segment extraction completed");
 
+      setState(() {
+        _progress = 1.0; // 추출 완료 후 진행률 100% 설정
+        _isExtracting = false;
+      });
+
       await _showNotification("Extraction Complete",
           "The video segment has been extracted successfully.", directoryPath);
-
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return InvalidTimeRangeDialog(context);
-        },
-      );
     } else {
       _log("Time validation failed");
       showDialog(
@@ -436,12 +443,24 @@ class _ExtractPageState extends State<ExtractPage> {
               ),
             ),
             const SizedBox(height: 16),
-            WidthFullButton(
-              text: '추출',
-              onPressed: () async {
-                await _downloadVideo();
-              },
-            ),
+            if (_isExtracting)
+              Column(
+                children: [
+                  LinearProgressIndicator(value: _progress),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${(_progress * 100).round()}%',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ],
+              )
+            else
+              WidthFullButton(
+                text: '추출',
+                onPressed: () async {
+                  await _downloadVideo();
+                },
+              ),
             const SizedBox(height: 16),
             Expanded(
               child: ListView.builder(
