@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-Widget WidthFullButton({required String text, required Function() onPressed}) {
+Widget ExtractButton({required Function() onPressed}) {
   return ElevatedButton(
     onPressed: onPressed,
     style: ElevatedButton.styleFrom(
@@ -10,7 +10,7 @@ Widget WidthFullButton({required String text, required Function() onPressed}) {
         borderRadius: BorderRadius.circular(4),
       ),
     ),
-    child: Text(text,
+    child: Text('추출',
         style: TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.w700,

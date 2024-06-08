@@ -1,6 +1,8 @@
+import '../widgets/AppBar/WelcomeAppBar.dart';
 import '../widgets/TextField/TimeIntervalSelector.dart';
 import '../widgets/TextField/YouTubeUrlInput.dart';
-import '../widgets/Button/WidthFullButton.dart';
+import '../widgets/TextField/ExtractInstructionText.dart';
+import '../widgets/Button/ExtractButton.dart';
 import '../widgets/Dropdown/FormatDropdown.dart';
 import '../widgets/Indicator/ExtractProgressIndicator.dart';
 import '../widgets/Dialog/InvalidTimeRangeDialog.dart';
@@ -262,30 +264,13 @@ class _ExtractPageState extends State<ExtractPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF14181B), // 배경색 설정
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF14181B),
-        title: const Text(
-          '환영해요!',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
+      appBar: WelcomeAppBar(title: '환영해요!'),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              '오디오를 추출해보세요!',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            ExtractInstructionText(),
             const SizedBox(height: 16),
             YouTubeUrlInput(urlController: _urlController),
             const SizedBox(height: 16),
@@ -307,12 +292,9 @@ class _ExtractPageState extends State<ExtractPage> {
             const SizedBox(height: 16),
             (_isExtracting)
                 ? ExtractProgressIndicator(progress: _progress)
-                : WidthFullButton(
-                    text: '추출',
-                    onPressed: () async {
-                      await _downloadVideo();
-                    },
-                  ),
+                : ExtractButton(onPressed: () async {
+                    await _downloadVideo();
+                  }),
           ],
         ),
       ),
