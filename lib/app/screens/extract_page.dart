@@ -6,17 +6,16 @@ import '../widgets/Button/ExtractButton.dart';
 import '../widgets/Dropdown/FormatDropdown.dart';
 import '../widgets/Indicator/ExtractProgressIndicator.dart';
 import '../widgets/Dialog/InvalidTimeRangeDialog.dart';
+import '../widgets/Dialog/ExtractErrorDialog.dart';
 import '../widgets/Toggle/TimeSegmentToggle.dart';
 import '../../services/time_validation.dart';
-import '../../services/video_service.dart';
-import '../../services/ffmpeg_service.dart';
+import '../../services/download_service.dart';
+import '../../services/notification_service.dart';
+import '../../services/directory_service.dart';
+import '../../services/permission_service.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:file_picker/file_picker.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 
 class ExtractPage extends StatefulWidget {
   @override
@@ -61,9 +60,11 @@ class _ExtractPageState extends State<ExtractPage> {
     TextEditingController(text: '00')
   ];
   bool _isSegmentEnabled = false;
+  List<String> _logs = [];
+
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+  late NotificationService notificationService;
   late String downloadedFilePath;
-  List<String> _logs = []; // 로그 메시지를 저장할 리스트
   final ScrollController _scrollController = ScrollController();
 
   bool _isExtracting = false;
@@ -72,32 +73,14 @@ class _ExtractPageState extends State<ExtractPage> {
   @override
   void initState() {
     super.initState();
-    _requestPermissions();
-    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
-    const initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initializationSettingsIOS = DarwinInitializationSettings();
-    const initializationSettings = InitializationSettings(
-      android: initializationSettingsAndroid,
-      iOS: initializationSettingsIOS,
-    );
-    flutterLocalNotificationsPlugin.initialize(initializationSettings,
-        onDidReceiveNotificationResponse:
-            (NotificationResponse notificationResponse) async {
-      if (notificationResponse.payload != null) {
-        await _openDownloadDirectory();
-      }
-    });
+    PermissionService.requestStoragePermission(_log);
+    _initializeNotifications();
   }
 
-  Future<void> _requestPermissions() async {
-    if (await Permission.storage.request().isGranted) {
-      // 권한이 승인되었습니다.
-      _log('Storage permission granted.');
-    } else {
-      // 권한이 거부되었습니다.
-      _log('Storage permission denied.');
-    }
+  void _initializeNotifications() async {
+    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    notificationService = NotificationService(flutterLocalNotificationsPlugin);
+    await notificationService.initialize(_log);
   }
 
   void _toggleSegment(bool value) {
@@ -108,155 +91,116 @@ class _ExtractPageState extends State<ExtractPage> {
 
   Future<void> _showNotification(
       String title, String body, String directoryPath) async {
-    const androidPlatformChannelSpecifics = AndroidNotificationDetails(
-        'your_channel_id', 'your_channel_name',
-        channelDescription: 'your_channel_description',
-        importance: Importance.max,
-        priority: Priority.high,
-        showWhen: false);
-    const iOSPlatformChannelSpecifics = DarwinNotificationDetails();
-    const platformChannelSpecifics = NotificationDetails(
-        android: androidPlatformChannelSpecifics,
-        iOS: iOSPlatformChannelSpecifics);
-    await flutterLocalNotificationsPlugin
-        .show(0, title, body, platformChannelSpecifics, payload: directoryPath);
+    final notificationService =
+        NotificationService(flutterLocalNotificationsPlugin);
+    await notificationService.showNotification(title, body, directoryPath);
   }
 
-  Future<void> _openDownloadDirectory() async {
-    try {
-      Directory? directory = await getExternalStorageDirectory();
-      if (directory == null) {
-        _log("Could not get the external storage directory");
-        return;
-      }
-
-      String documentsPath = '${directory.path}/Documents';
-      Directory documentsDirectory = Directory(documentsPath);
-
-      if (await documentsDirectory.exists()) {
-        _log('Directory exists: $documentsPath');
-      } else {
-        _log('Directory does not exist: $documentsPath');
-        await documentsDirectory.create(recursive: true);
-        _log('Directory created: $documentsPath');
-      }
-
-      // Use FilePicker to open the directory picker starting at the Documents directory
-      String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
-      if (selectedDirectory != null) {
-        _log('Directory selected: $selectedDirectory');
-      } else {
-        _log('User canceled the picker');
-      }
-    } catch (e) {
-      _log("Could not open directory: $e");
-    }
-  }
-
-  Future<void> _downloadVideo() async {
+  Future<void> _validateAndDownloadVideo() async {
     if (TimeValidationService().isStartTimeBeforeEndTime(
       startControllers: _startTimeControllers,
       endControllers: _endTimeControllers,
     )) {
       _log("Time validation passed");
-      VideoService videoService = VideoService();
-      FFmpegService ffmpegService = FFmpegService();
-
-      setState(() {
-        _isExtracting = true;
-        _progress = 0.0;
-      });
-
-      _log("Starting video download");
-      await videoService.downloadYouTubeVideo(_urlController.text, (progress) {
-        setState(() {
-          _progress = progress;
-        });
-      }).catchError((e) {
-        _log("Video download error: $e");
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text("Error"),
-              content: Text("Video download error: $e"),
-              actions: <Widget>[
-                TextButton(
-                  child: Text("OK"),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ],
-            );
-          },
-        );
-      });
-      _log("Video download completed");
-
-      setState(() {
-        downloadedFilePath = videoService.downloadedFilePath;
-        _downloadedFilePathController.text = downloadedFilePath;
-        _progress = 0.5; // 다운로드 완료 후 중간 진행률 설정
-      });
-
-      final directoryPath =
-          downloadedFilePath.substring(0, downloadedFilePath.lastIndexOf('/'));
-      await _showNotification("Download Complete",
-          "The video has been downloaded successfully.", directoryPath);
-
-      _log("Starting video segment extraction");
-      await ffmpegService
-          .extractVideoSegment(
-              '00:00:10', '00:00:30'.toString().split('.').first)
-          .catchError((e) {
-        _log("Video segment extraction error: $e");
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              title: Text("Error"),
-              content: Text("Video segment extraction error: $e"),
-              actions: <Widget>[
-                TextButton(
-                  child: Text("OK"),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-              ],
-            );
-          },
-        );
-      });
-      _log("Video segment extraction completed");
-
-      setState(() {
-        _progress = 1.0; // 추출 완료 후 진행률 100% 설정
-        _isExtracting = false;
-      });
-
-      await _showNotification("Extraction Complete",
-          "The video segment has been extracted successfully.", directoryPath);
+      await _downloadVideo();
     } else {
       _log("Time validation failed");
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return InvalidTimeRangeDialog(context);
-        },
-      );
+      _showInvalidTimeRangeDialog();
     }
+  }
+
+  Future<void> _downloadVideo() async {
+    DownloadService downloadService =
+        DownloadService(flutterLocalNotificationsPlugin);
+
+    setState(() {
+      _isExtracting = true;
+      _progress = 0.0;
+    });
+
+    try {
+      await _startVideoDownload(downloadService);
+      await _startVideoExtraction(downloadService);
+      await _showExtractionCompleteNotification(downloadService);
+    } catch (e) {
+      _handleError(e);
+    } finally {
+      setState(() {
+        _isExtracting = false;
+      });
+    }
+  }
+
+  Future<void> _startVideoDownload(DownloadService downloadService) async {
+    _log("Starting video download");
+    await downloadService.downloadYouTubeVideo(_urlController.text, (progress) {
+      setState(() {
+        _progress = progress;
+      });
+    }, _log);
+    _log("Video download completed");
+
+    setState(() {
+      downloadedFilePath = downloadService.downloadedFilePath;
+      _downloadedFilePathController.text = downloadedFilePath;
+      _progress = 0.5; // 다운로드 완료 후 중간 진행률 설정
+    });
+  }
+
+  Future<void> _startVideoExtraction(DownloadService downloadService) async {
+    _log("Starting video segment extraction");
+    String startTime = '00:00:10';
+    String duration = '00:00:30';
+    String outputFilePath =
+        '${downloadedFilePath.substring(0, downloadedFilePath.lastIndexOf('/'))}/extracted_segment.mp4';
+    await downloadService.extractVideoSegment(
+        startTime, duration, downloadedFilePath, outputFilePath, _log);
+    _log("Video segment extraction completed");
+
+    setState(() {
+      _progress = 1.0; // 추출 완료 후 진행률 100% 설정
+    });
+  }
+
+  Future<void> _showExtractionCompleteNotification(
+      DownloadService downloadService) async {
+    final directoryPath =
+        downloadedFilePath.substring(0, downloadedFilePath.lastIndexOf('/'));
+    await _showNotification("Extraction Complete",
+        "The video segment has been extracted successfully.", directoryPath);
+  }
+
+  void _handleError(dynamic error) {
+    _log("Error: $error");
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return ExtractErrorDialog(context, error.toString());
+      },
+    );
+  }
+
+  void _showInvalidTimeRangeDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return InvalidTimeRangeDialog(context);
+      },
+    );
   }
 
   void _log(String message) {
     setState(() {
       _logs.add(message);
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+          );
+        }
+      });
     });
   }
 
@@ -264,7 +208,7 @@ class _ExtractPageState extends State<ExtractPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF14181B), // 배경색 설정
-      appBar: WelcomeAppBar(title: '환영해요!'),
+      appBar: WelcomeAppBar(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -293,7 +237,7 @@ class _ExtractPageState extends State<ExtractPage> {
             (_isExtracting)
                 ? ExtractProgressIndicator(progress: _progress)
                 : ExtractButton(onPressed: () async {
-                    await _downloadVideo();
+                    await _validateAndDownloadVideo();
                   }),
           ],
         ),
