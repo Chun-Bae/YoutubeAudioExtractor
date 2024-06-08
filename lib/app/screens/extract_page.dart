@@ -1,7 +1,10 @@
-import '../widgets/TextField/TimeIntervalInput.dart';
+import '../widgets/TextField/TimeIntervalSelector.dart';
+import '../widgets/TextField/YouTubeUrlInput.dart';
 import '../widgets/Button/WidthFullButton.dart';
-import '../widgets/Dropdown/FormatDropdownMenu.dart';
+import '../widgets/Dropdown/FormatDropdown.dart';
+import '../widgets/Indicator/ExtractProgressIndicator.dart';
 import '../widgets/Dialog/InvalidTimeRangeDialog.dart';
+import '../widgets/Toggle/TimeSegmentToggle.dart';
 import '../../services/time_validation.dart';
 import '../../services/video_service.dart';
 import '../../services/ffmpeg_service.dart';
@@ -284,196 +287,32 @@ class _ExtractPageState extends State<ExtractPage> {
               ),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _urlController,
-              decoration: const InputDecoration(
-                labelText: 'Input Youtube URL...',
-                labelStyle: TextStyle(color: Colors.white),
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.white),
-                ),
-                focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFFFF5963)),
-                ),
-                disabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.white, width: 3.0),
-                ),
-              ),
-              style: const TextStyle(color: Colors.white),
+            YouTubeUrlInput(urlController: _urlController),
+            const SizedBox(height: 16),
+            TimeSegmentToggle(
+              isSegmentEnabled: _isSegmentEnabled,
+              onToggle: _toggleSegment,
+            ),
+            TimeIntervalSelector(
+              isSegmentEnabled: _isSegmentEnabled,
+              startTimeControllers: _startTimeControllers,
+              endTimeControllers: _endTimeControllers,
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _downloadedFilePathController,
-              readOnly: true,
-              decoration: const InputDecoration(
-                labelText: 'Downloaded File Path...',
-                labelStyle: TextStyle(color: Colors.white),
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.white),
-                ),
-                focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Color(0xFFFF5963)),
-                ),
-                disabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.white, width: 3.0),
-                ),
-              ),
-              style: const TextStyle(color: Colors.white),
+            FormatDropdown(
+              audioFormats: audioFormats,
+              videoFormats: videoFormats,
+              onChanged: (String? value) {},
             ),
             const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Row(
-                  children: const [
-                    Icon(Icons.timer_rounded, color: Color(0xFFFF5963)),
-                    SizedBox(width: 2),
-                    Text(
-                      "구간 설정",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 10),
-                Switch(
-                  value: _isSegmentEnabled,
-                  onChanged: _toggleSegment,
-                  activeColor: const Color(0xFFFF5963),
-                  inactiveTrackColor: const Color(0xFF14181B),
-                ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                TimeIntervalInput(
-                  isSegmentEnabled: _isSegmentEnabled,
-                  timeController: _startTimeControllers[0],
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  ':',
-                  style: TextStyle(color: Colors.white),
-                ),
-                TimeIntervalInput(
-                  isSegmentEnabled: _isSegmentEnabled,
-                  timeController: _startTimeControllers[1],
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  ':',
-                  style: TextStyle(color: Colors.white),
-                ),
-                const SizedBox(width: 8),
-                TimeIntervalInput(
-                  isSegmentEnabled: _isSegmentEnabled,
-                  timeController: _startTimeControllers[2],
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  '~',
-                  style: TextStyle(color: Colors.white),
-                ),
-                TimeIntervalInput(
-                  isSegmentEnabled: _isSegmentEnabled,
-                  timeController: _endTimeControllers[0],
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  ':',
-                  style: TextStyle(color: Colors.white),
-                ),
-                const SizedBox(width: 8),
-                TimeIntervalInput(
-                  isSegmentEnabled: _isSegmentEnabled,
-                  timeController: _endTimeControllers[1],
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  ':',
-                  style: TextStyle(color: Colors.white),
-                ),
-                const SizedBox(width: 8),
-                TimeIntervalInput(
-                  isSegmentEnabled: _isSegmentEnabled,
-                  timeController: _endTimeControllers[2],
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              decoration: InputDecoration(
-                enabledBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.white, width: 3.0),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                focusedBorder: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.white, width: 3.0),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                border: UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.white, width: 3.0),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              dropdownColor: const Color(0xFF14181B),
-              items: [
-                ...FormatDropdownMenu(
-                        categoryName: '비디오 포맷',
-                        items: audioFormats,
-                        value: 'video')
-                    .getDropdownMenuItems(),
-                ...FormatDropdownMenu(
-                        categoryName: '비디오 포맷',
-                        items: videoFormats,
-                        value: 'video')
-                    .getDropdownMenuItems(),
-              ],
-              iconEnabledColor: const Color(0xFFFF5963),
-              onChanged: (newValue) {
-                // 선택된 값 처리
-              },
-              hint: const Text(
-                'Select Format',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 16),
-            if (_isExtracting)
-              Column(
-                children: [
-                  LinearProgressIndicator(value: _progress),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${(_progress * 100).round()}%',
-                    style: const TextStyle(color: Colors.white),
+            (_isExtracting)
+                ? ExtractProgressIndicator(progress: _progress)
+                : WidthFullButton(
+                    text: '추출',
+                    onPressed: () async {
+                      await _downloadVideo();
+                    },
                   ),
-                ],
-              )
-            else
-              WidthFullButton(
-                text: '추출',
-                onPressed: () async {
-                  await _downloadVideo();
-                },
-              ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                itemCount: _logs.length,
-                itemBuilder: (context, index) {
-                  return Text(
-                    _logs[index],
-                    style: const TextStyle(color: Colors.white),
-                  );
-                },
-              ),
-            ),
           ],
         ),
       ),
