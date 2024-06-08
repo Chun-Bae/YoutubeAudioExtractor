@@ -11,7 +11,6 @@ import '../widgets/Toggle/TimeSegmentToggle.dart';
 import '../../services/time_validation.dart';
 import '../../services/download_service.dart';
 import '../../services/notification_service.dart';
-import '../../services/directory_service.dart';
 import '../../services/permission_service.dart';
 
 import 'package:flutter/material.dart';
@@ -121,6 +120,7 @@ class _ExtractPageState extends State<ExtractPage> {
     try {
       await _startVideoDownload(downloadService);
       await _startVideoExtraction(downloadService);
+      await _deleteOriginalVideo(downloadService);
       await _showExtractionCompleteNotification(downloadService);
     } catch (e) {
       _handleError(e);
@@ -162,6 +162,11 @@ class _ExtractPageState extends State<ExtractPage> {
     });
   }
 
+  Future<void> _deleteOriginalVideo(DownloadService downloadService) async {
+    _log("Deleting original video file");
+    await downloadService.deleteOriginalVideo(_log);
+  }
+
   Future<void> _showExtractionCompleteNotification(
       DownloadService downloadService) async {
     final directoryPath =
@@ -190,6 +195,7 @@ class _ExtractPageState extends State<ExtractPage> {
   }
 
   void _log(String message) {
+    print(message);
     setState(() {
       _logs.add(message);
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -207,7 +213,7 @@ class _ExtractPageState extends State<ExtractPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF14181B), // 배경색 설정
+      backgroundColor: const Color(0xFF14181B),
       appBar: WelcomeAppBar(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

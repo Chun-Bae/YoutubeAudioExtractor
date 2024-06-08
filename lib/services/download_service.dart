@@ -54,7 +54,8 @@ class DownloadService {
   Future<void> extractVideoSegment(String startTime, String duration,
       String inputFilePath, String outputFilePath, Function(String) log) async {
     var ffmpegService = FFmpegService();
-    await ffmpegService.extractVideoSegment(startTime, duration);
+    await ffmpegService.extractVideoSegment(
+        startTime, duration, inputFilePath, outputFilePath, log);
     log("Video segment extraction complete");
   }
 
@@ -63,5 +64,15 @@ class DownloadService {
     final notificationService =
         NotificationService(flutterLocalNotificationsPlugin);
     await notificationService.showNotification(title, body, directoryPath);
+  }
+
+  Future<void> deleteOriginalVideo(Function(String) log) async {
+    var file = File(downloadedFilePath);
+    if (await file.exists()) {
+      await file.delete();
+      log('Original video file deleted');
+    } else {
+      log('Original video file not found for deletion');
+    }
   }
 }

@@ -4,20 +4,11 @@ import 'dart:io';
 class FFmpegService {
   final FlutterFFmpeg _flutterFFmpeg = FlutterFFmpeg();
 
-  Future<void> extractVideoSegment(String startTime, String duration) async {
-    print('Starting video segment extraction');
-
-    // 앱 전용의 외부 저장소 경로 설정
-    Directory externalDir = Directory('/storage/emulated/0/Documents');
-
-    if (externalDir == null) {
-      throw Exception("Could not get the external storage directory");
-    }
-    String externalPath = '${externalDir.path}';
-    var inputFilePath = '$externalPath/downloaded_video.mp4';
-    var outputFilePath = '$externalPath/extracted_segment.mp4';
-    print('Input file path: $inputFilePath');
-    print('Output file path: $outputFilePath');
+  Future<void> extractVideoSegment(String startTime, String duration,
+      String inputFilePath, String outputFilePath, Function(String) log) async {
+    log('Starting video segment extraction');
+    log('Input file path: $inputFilePath');
+    log('Output file path: $outputFilePath');
 
     // 이미 존재하는 출력 파일 삭제
     var outputFile = File(outputFilePath);
@@ -27,11 +18,11 @@ class FFmpegService {
 
     String ffmpegCommand =
         '-y -i $inputFilePath -ss $startTime -t $duration -c copy $outputFilePath';
-    print('FFmpeg command: $ffmpegCommand');
+    log('FFmpeg command: $ffmpegCommand');
 
     await _flutterFFmpeg
         .execute(ffmpegCommand)
-        .then((rc) => print("FFmpeg process exited with rc $rc"));
-    print('Video segment extraction complete');
+        .then((rc) => log("FFmpeg process exited with rc $rc"));
+    log('Video segment extraction complete');
   }
 }
