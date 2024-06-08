@@ -1,3 +1,5 @@
+import 'package:youtube_audio_extractor/app/widgets/Button/ResetButton.dart';
+
 import '../widgets/AppBar/WelcomeAppBar.dart';
 import '../widgets/TextField/TimeIntervalSelector.dart';
 import '../widgets/TextField/YouTubeUrlInput.dart';
@@ -61,24 +63,30 @@ class _ExtractPageState extends State<ExtractPage> {
   bool _isSegmentEnabled = false;
   List<String> _logs = [];
 
+  static const int EXTRACT_STATUS_IDLE = 0;
+  static const int EXTRACT_STATUS_EXTRACTING = 1;
+  static const int EXTRACT_STATUS_COMPLETED = 2;
+
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   late NotificationService notificationService;
+  late DownloadService downloadService;
   late String downloadedFilePath;
   final ScrollController _scrollController = ScrollController();
 
-  bool _isExtracting = false;
+  int _extractStatus = EXTRACT_STATUS_IDLE;
   double _progress = 0.0;
 
   @override
   void initState() {
     super.initState();
     PermissionService.requestStoragePermission(_log);
-    _initializeNotifications();
+    _initializeServices();
   }
 
-  void _initializeNotifications() async {
+  void _initializeServices() async {
     flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
     notificationService = NotificationService(flutterLocalNotificationsPlugin);
+    downloadService = DownloadService(flutterLocalNotificationsPlugin);
     await notificationService.initialize(_log);
   }
 
@@ -86,13 +94,6 @@ class _ExtractPageState extends State<ExtractPage> {
     setState(() {
       _isSegmentEnabled = value;
     });
-  }
-
-  Future<void> _showNotification(
-      String title, String body, String directoryPath) async {
-    final notificationService =
-        NotificationService(flutterLocalNotificationsPlugin);
-    await notificationService.showNotification(title, body, directoryPath);
   }
 
   Future<void> _validateAndDownloadVideo() async {
@@ -109,11 +110,8 @@ class _ExtractPageState extends State<ExtractPage> {
   }
 
   Future<void> _downloadVideo() async {
-    DownloadService downloadService =
-        DownloadService(flutterLocalNotificationsPlugin);
-
     setState(() {
-      _isExtracting = true;
+      _extractStatus = EXTRACT_STATUS_EXTRACTING;
       _progress = 0.0;
     });
 
@@ -122,12 +120,19 @@ class _ExtractPageState extends State<ExtractPage> {
       await _startVideoExtraction(downloadService);
       await _deleteOriginalVideo(downloadService);
       await _showExtractionCompleteNotification(downloadService);
+      await Future.delayed(Duration(milliseconds: 400));
+      setState(() {
+        _extractStatus = EXTRACT_STATUS_COMPLETED;
+        _progress = 0.0;
+      });
     } catch (e) {
       _handleError(e);
     } finally {
-      setState(() {
-        _isExtracting = false;
-      });
+      if (_extractStatus != EXTRACT_STATUS_COMPLETED) {
+        setState(() {
+          _extractStatus = EXTRACT_STATUS_IDLE;
+        });
+      }
     }
   }
 
@@ -143,7 +148,6 @@ class _ExtractPageState extends State<ExtractPage> {
     setState(() {
       downloadedFilePath = downloadService.downloadedFilePath;
       _downloadedFilePathController.text = downloadedFilePath;
-      _progress = 0.5; // 다운로드 완료 후 중간 진행률 설정
     });
   }
 
@@ -171,7 +175,7 @@ class _ExtractPageState extends State<ExtractPage> {
       DownloadService downloadService) async {
     final directoryPath =
         downloadedFilePath.substring(0, downloadedFilePath.lastIndexOf('/'));
-    await _showNotification("Extraction Complete",
+    await downloadService.showNotification("Extraction Complete",
         "The video segment has been extracted successfully.", directoryPath);
   }
 
@@ -196,6 +200,7 @@ class _ExtractPageState extends State<ExtractPage> {
 
   void _log(String message) {
     print(message);
+
     setState(() {
       _logs.add(message);
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -207,6 +212,14 @@ class _ExtractPageState extends State<ExtractPage> {
           );
         }
       });
+    });
+  }
+
+  void _reset() {
+    setState(() {
+      _extractStatus = EXTRACT_STATUS_IDLE;
+      _progress = 0.0;
+      _downloadedFilePathController.clear();
     });
   }
 
@@ -240,11 +253,38 @@ class _ExtractPageState extends State<ExtractPage> {
               onChanged: (String? value) {},
             ),
             const SizedBox(height: 16),
-            (_isExtracting)
-                ? ExtractProgressIndicator(progress: _progress)
-                : ExtractButton(onPressed: () async {
-                    await _validateAndDownloadVideo();
-                  }),
+            if (_extractStatus == EXTRACT_STATUS_EXTRACTING)
+              ExtractProgressIndicator(progress: _progress)
+            else if (_extractStatus == EXTRACT_STATUS_COMPLETED)
+              Container(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ResetButton(onPressed: _reset),
+                    const SizedBox(height: 16),
+                    Text(
+                      '파일 위치',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    Text(
+                      '내 파일 → 내장 메모리 → Documents',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    Text(
+                      '또는',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    Text(
+                      '내 파일 → 스토리지 → 오디오/비디오',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ExtractButton(onPressed: () async {
+                await _validateAndDownloadVideo();
+              }),
           ],
         ),
       ),
