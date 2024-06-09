@@ -2,11 +2,12 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 import 'dart:io';
 import 'notification_service.dart';
 import 'ffmpeg_service.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class DownloadService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
-
+  late String title;
   DownloadService(this.flutterLocalNotificationsPlugin);
 
   late String downloadedFilePath;
@@ -19,6 +20,7 @@ class DownloadService {
     log("YouTube Explode initialized");
 
     var video = await yt.videos.get(videoUrl);
+    title = video.title;
     log("Video info fetched: ${video.title}");
 
     var manifest = await yt.videos.streamsClient.getManifest(video.id);
@@ -27,7 +29,10 @@ class DownloadService {
 
     var stream = yt.videos.streamsClient.get(streamInfo);
 
-    Directory externalDir = Directory('/storage/emulated/0/Documents');
+    Directory? externalDir = await getExternalStorageDirectory();
+    if (externalDir == null) {
+      throw Exception("Could not get the external storage directory");
+    }
     String externalPath = '${externalDir.path}';
     downloadedFilePath = '$externalPath/downloaded_video.mp4';
     log("File path: $downloadedFilePath");
@@ -64,18 +69,18 @@ class DownloadService {
     log("Video segment extraction complete");
   }
 
-  Future<void> showNotification(
-      String title, String body, String directoryPath) async {
+  Future<void> showNotification(String directoryPath) async {
     final notificationService =
         NotificationService(flutterLocalNotificationsPlugin);
-    await notificationService.showNotification(title, body, directoryPath);
+    await notificationService.showNotification(
+        title, '다운로드 완료!', directoryPath);
   }
 
   Future<void> deleteOriginalVideo(Function(String) log) async {
     var file = File(downloadedFilePath);
     if (await file.exists()) {
       await file.delete();
-      log('Original video file deleted');
+      log('Original video file deleted: ${downloadedFilePath}');
     } else {
       log('Original video file not found for deletion');
     }

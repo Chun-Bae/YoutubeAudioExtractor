@@ -159,7 +159,7 @@ class _ExtractPageState extends State<ExtractPage> {
     String startTime = '00:00:10';
     String duration = '00:00:05';
     String outputFilePath =
-        '${downloadedFilePath.substring(0, downloadedFilePath.lastIndexOf('/'))}/extracted_segment.${_selectedFormat!.toLowerCase()}';
+        '/extracted_segment.${_selectedFormat!.toLowerCase()}';
     await downloadService.extractVideoSegment(startTime, duration,
         downloadedFilePath, outputFilePath, _selectedFormat!, _log);
     _log("Video segment extraction completed");
@@ -178,8 +178,7 @@ class _ExtractPageState extends State<ExtractPage> {
       DownloadService downloadService) async {
     final directoryPath =
         downloadedFilePath.substring(0, downloadedFilePath.lastIndexOf('/'));
-    await downloadService.showNotification("Extraction Complete",
-        "The video segment has been extracted successfully.", directoryPath);
+    await downloadService.showNotification(directoryPath);
   }
 
   void _handleError(dynamic error) {
