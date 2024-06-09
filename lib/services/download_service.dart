@@ -51,11 +51,16 @@ class DownloadService {
     log("Video download complete");
   }
 
-  Future<void> extractVideoSegment(String startTime, String duration,
-      String inputFilePath, String outputFilePath, Function(String) log) async {
+  Future<void> extractVideoSegment(
+      String startTime,
+      String duration,
+      String inputFilePath,
+      String outputFilePath,
+      String formatCommand,
+      Function(String) log) async {
     var ffmpegService = FFmpegService();
     await ffmpegService.extractVideoSegment(
-        startTime, duration, inputFilePath, outputFilePath, log);
+        startTime, duration, inputFilePath, outputFilePath, formatCommand, log);
     log("Video segment extraction complete");
   }
 

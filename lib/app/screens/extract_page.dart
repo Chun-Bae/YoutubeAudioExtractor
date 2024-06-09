@@ -1,5 +1,3 @@
-import 'package:youtube_audio_extractor/app/widgets/Button/ResetButton.dart';
-
 import '../widgets/AppBar/WelcomeAppBar.dart';
 import '../widgets/TextField/TimeIntervalSelector.dart';
 import '../widgets/TextField/YouTubeUrlInput.dart';
@@ -14,7 +12,6 @@ import '../../services/time_validation.dart';
 import '../../services/download_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/permission_service.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -62,6 +59,7 @@ class _ExtractPageState extends State<ExtractPage> {
   ];
   bool _isSegmentEnabled = false;
   List<String> _logs = [];
+  String? _selectedFormat;
 
   static const int EXTRACT_STATUS_IDLE = 0;
   static const int EXTRACT_STATUS_EXTRACTING = 1;
@@ -120,7 +118,7 @@ class _ExtractPageState extends State<ExtractPage> {
       await _startVideoExtraction(downloadService);
       await _deleteOriginalVideo(downloadService);
       await _showExtractionCompleteNotification(downloadService);
-      await Future.delayed(Duration(milliseconds: 400));
+      await Future.delayed(Duration(milliseconds: 100));
       setState(() {
         _extractStatus = EXTRACT_STATUS_COMPLETED;
         _progress = 0.0;
@@ -137,6 +135,11 @@ class _ExtractPageState extends State<ExtractPage> {
   }
 
   Future<void> _startVideoDownload(DownloadService downloadService) async {
+    if (_selectedFormat == null) {
+      _handleError('No format selected');
+      return;
+    }
+
     _log("Starting video download");
     await downloadService.downloadYouTubeVideo(_urlController.text, (progress) {
       setState(() {
@@ -154,11 +157,11 @@ class _ExtractPageState extends State<ExtractPage> {
   Future<void> _startVideoExtraction(DownloadService downloadService) async {
     _log("Starting video segment extraction");
     String startTime = '00:00:10';
-    String duration = '00:00:30';
+    String duration = '00:00:05';
     String outputFilePath =
-        '${downloadedFilePath.substring(0, downloadedFilePath.lastIndexOf('/'))}/extracted_segment.mp4';
-    await downloadService.extractVideoSegment(
-        startTime, duration, downloadedFilePath, outputFilePath, _log);
+        '${downloadedFilePath.substring(0, downloadedFilePath.lastIndexOf('/'))}/extracted_segment.${_selectedFormat!.toLowerCase()}';
+    await downloadService.extractVideoSegment(startTime, duration,
+        downloadedFilePath, outputFilePath, _selectedFormat!, _log);
     _log("Video segment extraction completed");
 
     setState(() {
@@ -250,41 +253,23 @@ class _ExtractPageState extends State<ExtractPage> {
             FormatDropdown(
               audioFormats: audioFormats,
               videoFormats: videoFormats,
-              onChanged: (String? value) {},
+              onChanged: (String? value) {
+                setState(() {
+                  _selectedFormat = value;
+                });
+              },
             ),
             const SizedBox(height: 16),
-            if (_extractStatus == EXTRACT_STATUS_EXTRACTING)
-              ExtractProgressIndicator(progress: _progress)
-            else if (_extractStatus == EXTRACT_STATUS_COMPLETED)
-              Container(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    ResetButton(onPressed: _reset),
-                    const SizedBox(height: 16),
-                    Text(
-                      '파일 위치',
-                      style: TextStyle(color: Colors.white),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 600),
+              child: _extractStatus == EXTRACT_STATUS_EXTRACTING
+                  ? ExtractProgressIndicator(progress: _progress)
+                  : ExtractButton(
+                      onPressed: () async {
+                        await _validateAndDownloadVideo();
+                      },
                     ),
-                    Text(
-                      '내 파일 → 내장 메모리 → Documents',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    Text(
-                      '또는',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    Text(
-                      '내 파일 → 스토리지 → 오디오/비디오',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ],
-                ),
-              )
-            else
-              ExtractButton(onPressed: () async {
-                await _validateAndDownloadVideo();
-              }),
+            ),
           ],
         ),
       ),
