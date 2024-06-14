@@ -45,13 +45,17 @@ class FFmpegService {
     log('FFmpeg command: $ffmpegCommand');
 
     // 추출할 비디오 세그먼트의 길이를 초 단위로 변환
-    int durationInSeconds = _parseDuration(duration);
+    int durationInSeconds = await _parseDuration(duration);
+
+    // 초기 진행률 설정
+    if (onProgress != null) {
+      onProgress(0.0);
+    }
 
     _progressCallback = (int time, int size) {
-      onProgress!(0.0);
       if (onProgress != null && durationInSeconds > 0) {
-        double progress = time / (durationInSeconds * 1000); // ms to s
-        onProgress(progress);
+        double progress = time / (durationInSeconds * 1000.0); // ms to s
+        if (progress < 0.99) onProgress(progress);
       }
     };
 
@@ -60,10 +64,18 @@ class FFmpegService {
         .then((rc) => log("FFmpeg process exited with rc $rc"));
     log('Video segment extraction complete');
 
+    // 작업 완료 후 진행률을 100%로 설정
+    if (onProgress != null) {
+      onProgress(1.0);
+    }
+
     _progressCallback = null;
   }
 
-  int _parseDuration(String duration) {
+  Future<int> _parseDuration(String duration) async {
+    if (duration.isEmpty) {
+      return 0;
+    }
     List<String> parts = duration.split(':');
     int hours = int.parse(parts[0]);
     int minutes = int.parse(parts[1]);

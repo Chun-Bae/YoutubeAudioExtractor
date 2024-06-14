@@ -172,7 +172,9 @@ class _ExtractPageState extends State<ExtractPage> {
       startControllers: _startTimeControllers,
       endControllers: _endTimeControllers,
     )}';
-
+        setState(() {
+      _extract_process = 0.0; // 추출 완료 후 진행률 100% 설정
+    });
     String outputFilePath =
         '/${_fileNameController.text}.${_selectedFormat!.toLowerCase()}';
     await downloadService.extractVideoSegment(startTime, duration,
