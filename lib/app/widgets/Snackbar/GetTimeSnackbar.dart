@@ -112,7 +112,7 @@ class __SnackbarContentState extends State<_SnackbarContent>
       child: Container(
         padding: EdgeInsets.all(16.0),
         decoration: BoxDecoration(
-          color: Color(0xFFFF5963),
+          color: Color(0xFF0020715),
           borderRadius: BorderRadius.circular(10.0),
         ),
         child: Text(

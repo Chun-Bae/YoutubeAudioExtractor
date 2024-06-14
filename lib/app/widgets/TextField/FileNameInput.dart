@@ -11,6 +11,8 @@ class FileNameInput extends StatelessWidget {
       controller: fileNameController,
       decoration: const InputDecoration(
         labelText: '파일 이름',
+        hintText: "extract_file",
+        hintStyle: TextStyle(color: Color.fromARGB(255, 104, 104, 104)),
         labelStyle: TextStyle(color: Colors.white),
         enabledBorder: UnderlineInputBorder(
           borderSide: BorderSide(color: Colors.white),

@@ -10,11 +10,12 @@ import '../widgets/Dialog/InvalidTimeRangeDialog.dart';
 import '../widgets/Dialog/ExtractErrorDialog.dart';
 import '../widgets/Toggle/TimeSegmentToggle.dart';
 import '../widgets/Snackbar/GetTimeSnackbar.dart';
-import '../../services/time_validation.dart';
+import '../../services/time_validation_service.dart';
 import '../../services/time_duration_service.dart';
 import '../../services/download_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/permission_service.dart';
+import '../../services/url_validation_service.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -26,8 +27,7 @@ class ExtractPage extends StatefulWidget {
 
 class _ExtractPageState extends State<ExtractPage> {
   TextEditingController _urlController = TextEditingController();
-  TextEditingController _fileNameController =
-      TextEditingController(text: 'extracted_file');
+  TextEditingController _fileNameController = TextEditingController();
   TextEditingController _downloadedFilePathController = TextEditingController();
   final List<String> audioFormats = [
     'MP3',
@@ -177,6 +177,9 @@ class _ExtractPageState extends State<ExtractPage> {
     setState(() {
       _extract_process = 0.0; // 추출 완료 후 진행률 100% 설정
     });
+    if (_fileNameController.text.isEmpty) {
+      _fileNameController.text = 'extracted_file';
+    }
     String outputFilePath =
         '/${_fileNameController.text}.${_selectedFormat!.toLowerCase()}';
     await downloadService.extractVideoSegment(startTime, duration,
@@ -302,7 +305,8 @@ class _ExtractPageState extends State<ExtractPage> {
                     YouTubeUrlInput(
                       urlController: _urlController,
                       onChangeFunc: (url) async {
-                        await _getVideoDuration(url);
+                        _urlController.text = removeSiParameter(url);
+                        await _getVideoDuration(_urlController.text);
                       },
                     ),
                     const SizedBox(height: 16),
