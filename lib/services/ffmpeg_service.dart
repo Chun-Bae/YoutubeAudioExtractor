@@ -5,6 +5,7 @@ import '../app/utils/ffmpeg_utils.dart';
 class FFmpegService {
   final FlutterFFmpeg _flutterFFmpeg = FlutterFFmpeg();
   final FlutterFFmpegConfig _flutterFFmpegConfig = FlutterFFmpegConfig();
+  static bool isCancelled = false;
 
   FFmpegService() {
     _flutterFFmpegConfig.enableStatisticsCallback((statistics) {
@@ -56,6 +57,10 @@ class FFmpegService {
       if (onProgress != null && durationInSeconds > 0) {
         double progress = time / (durationInSeconds * 1000.0); // ms to s
         if (progress < 0.99) onProgress(progress);
+        if (isCancelled) {
+          _flutterFFmpeg.cancel();
+          isCancelled = false;
+        }
       }
     };
 
@@ -81,5 +86,9 @@ class FFmpegService {
     int minutes = int.parse(parts[1]);
     int seconds = int.parse(parts[2]);
     return hours * 3600 + minutes * 60 + seconds;
+  }
+
+  static void cancelExtraction() {
+    isCancelled = true;
   }
 }

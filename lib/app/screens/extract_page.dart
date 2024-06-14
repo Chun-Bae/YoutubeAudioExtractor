@@ -4,6 +4,7 @@ import '../widgets/TextField/YouTubeUrlInput.dart';
 import '../widgets/TextField/FileNameInput.dart';
 import '../widgets/TextField/ExtractInstructionText.dart';
 import '../widgets/Button/ExtractButton.dart';
+import '../widgets/Button/ExtractCancelButton.dart';
 import '../widgets/Dropdown/FormatDropdown.dart';
 import '../widgets/Indicator/ExtractProgressIndicator.dart';
 import '../widgets/Dialog/InvalidTimeRangeDialog.dart';
@@ -13,6 +14,7 @@ import '../widgets/Snackbar/GetTimeSnackbar.dart';
 import '../../services/time_validation_service.dart';
 import '../../services/time_duration_service.dart';
 import '../../services/download_service.dart';
+import '../../services/ffmpeg_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/permission_service.dart';
 import '../../services/url_validation_service.dart';
@@ -65,6 +67,7 @@ class _ExtractPageState extends State<ExtractPage> {
   ];
   bool _isSegmentEnabled = false;
   bool _isGettingVideoTime = false;
+  bool _cancelExtract = false;
   List<String> _logs = [];
   String? _selectedFormat;
 
@@ -76,6 +79,7 @@ class _ExtractPageState extends State<ExtractPage> {
   late NotificationService notificationService;
   late DownloadService downloadService;
   late String downloadedFilePath;
+
   Duration _videoDuration = Duration.zero; // 전체 동영상 길이 상태
   final ScrollController _scrollController = ScrollController();
 
@@ -141,10 +145,23 @@ class _ExtractPageState extends State<ExtractPage> {
           _extractStatus = EXTRACT_STATUS_IDLE;
         });
       }
+      _cancelExtract = false;
     }
   }
 
+  void _cancelExtraction() {
+    _cancelExtract = true;
+    DownloadService.cancelDownload();
+    FFmpegService.cancelExtraction();
+    setState(() {
+      _extractStatus = EXTRACT_STATUS_IDLE;
+      _download_process = 0.0;
+      _extract_process = 0.0;
+    });
+  }
+
   Future<void> _startVideoDownload(DownloadService downloadService) async {
+    if (_cancelExtract) return;
     if (_selectedFormat == null) {
       _handleError('포맷을 지정해주세요!');
       return;
@@ -165,9 +182,10 @@ class _ExtractPageState extends State<ExtractPage> {
   }
 
   Future<void> _startVideoExtraction(DownloadService downloadService) async {
+    if (_cancelExtract) return;
+
     late String startTime;
     late String duration;
-
     _log("Starting video segment extraction");
     startTime =
         '${_startTimeControllers[0].text}:${_startTimeControllers[1].text}:${_startTimeControllers[2].text}';
@@ -203,6 +221,7 @@ class _ExtractPageState extends State<ExtractPage> {
 
   Future<void> _showExtractionCompleteNotification(
       DownloadService downloadService) async {
+    if (_cancelExtract) return;
     final directoryPath =
         downloadedFilePath.substring(0, downloadedFilePath.lastIndexOf('/'));
     await downloadService.showNotification(directoryPath,
@@ -364,6 +383,10 @@ class _ExtractPageState extends State<ExtractPage> {
                                     progress: _download_process),
                                 ExtractProgressIndicator(
                                     progress: _extract_process),
+                                SizedBox(width: 10),
+                                ExtractCancelButton(
+                                  onPressed: _cancelExtraction,
+                                ),
                               ],
                             ))
                           : ExtractButton(

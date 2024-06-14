@@ -7,10 +7,13 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class DownloadService {
   late String title;
-
   late String downloadedFilePath;
+  FFmpegService ffmpegService;
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
-  DownloadService(this.flutterLocalNotificationsPlugin);
+  static bool isCancelled = false;
+
+  DownloadService(this.flutterLocalNotificationsPlugin)
+      : ffmpegService = FFmpegService();
 
   Future<Duration> getYouTubeVideoDuration(String videoUrl) async {
     var yt = YoutubeExplode();
@@ -52,6 +55,14 @@ class DownloadService {
     var downloadedBytes = 0;
 
     await for (var data in stream) {
+      if (isCancelled) {
+        log("Download cancelled");
+        await output.close();
+        file.deleteSync();
+        isCancelled = false;
+        return;
+      }
+
       downloadedBytes += data.length;
       onProgress(downloadedBytes / totalBytes);
       output.add(data);
@@ -71,7 +82,6 @@ class DownloadService {
       String formatCommand,
       Function(String) log,
       Function(double)? onProgress) async {
-    var ffmpegService = FFmpegService();
     await ffmpegService.extractVideoSegment(startTime, duration, inputFilePath,
         outputFilePath, formatCommand, log, onProgress);
     log("Video segment extraction complete");
@@ -81,7 +91,7 @@ class DownloadService {
     final notificationService =
         NotificationService(flutterLocalNotificationsPlugin);
     await notificationService.showNotification(
-        title, '${fileName} 다운로드 완료!', directoryPath);
+        title, '$fileName 다운로드 완료!', directoryPath);
   }
 
   Future<void> deleteOriginalVideo(Function(String) log) async {
@@ -92,5 +102,9 @@ class DownloadService {
     } else {
       log('Original video file not found for deletion');
     }
+  }
+
+  static void cancelDownload() {
+    isCancelled = true;
   }
 }
