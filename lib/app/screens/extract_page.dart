@@ -9,6 +9,7 @@ import '../widgets/Indicator/ExtractProgressIndicator.dart';
 import '../widgets/Dialog/InvalidTimeRangeDialog.dart';
 import '../widgets/Dialog/ExtractErrorDialog.dart';
 import '../widgets/Toggle/TimeSegmentToggle.dart';
+import '../widgets/Snackbar/GetTimeSnackbar.dart';
 import '../../services/time_validation.dart';
 import '../../services/time_duration_service.dart';
 import '../../services/download_service.dart';
@@ -269,6 +270,7 @@ class _ExtractPageState extends State<ExtractPage> {
         controllers: _endTimeControllers,
         totalSeconds: _videoDuration.inSeconds,
       );
+      GetTimeSnackbar(context: context, message: "동영상 시간을 가져왔어요!").show();
     } catch (e) {
       _log('Failed to get video duration: $e');
     }
