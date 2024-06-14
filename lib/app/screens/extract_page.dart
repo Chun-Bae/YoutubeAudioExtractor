@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../widgets/AppBar/WelcomeAppBar.dart';
 import '../widgets/TextField/TimeIntervalSelector.dart';
 import '../widgets/TextField/YouTubeUrlInput.dart';
@@ -68,12 +70,15 @@ class _ExtractPageState extends State<ExtractPage> {
   bool _isSegmentEnabled = false;
   bool _isGettingVideoTime = false;
   bool _cancelExtract = false;
+  bool _isAnimating = false;
+
   List<String> _logs = [];
   String? _selectedFormat;
 
   static const int EXTRACT_STATUS_IDLE = 0;
   static const int EXTRACT_STATUS_EXTRACTING = 1;
   static const int EXTRACT_STATUS_COMPLETED = 2;
+  static const int EXTRACT_STATUS_CANCEL = 3;
 
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   late NotificationService notificationService;
@@ -108,6 +113,9 @@ class _ExtractPageState extends State<ExtractPage> {
   }
 
   Future<void> _validateAndDownloadVideo() async {
+    setState(() {
+      _isAnimating = true;
+    });
     if (TimeValidationService().isStartTimeBeforeEndTime(
       startControllers: _startTimeControllers,
       endControllers: _endTimeControllers,
@@ -118,6 +126,9 @@ class _ExtractPageState extends State<ExtractPage> {
       _log("Time validation failed");
       _showInvalidTimeRangeDialog();
     }
+    setState(() {
+      _isAnimating = false;
+    });
   }
 
   Future<void> _downloadVideo() async {
@@ -125,13 +136,15 @@ class _ExtractPageState extends State<ExtractPage> {
       _extractStatus = EXTRACT_STATUS_EXTRACTING;
       _download_process = 0.0;
     });
-
     try {
       await _startVideoDownload(downloadService);
       await _startVideoExtraction(downloadService);
       await _deleteOriginalVideo(downloadService);
       await _showExtractionCompleteNotification(downloadService);
       await Future.delayed(Duration(milliseconds: 100));
+      if (_cancelExtract) {
+        return;
+      }
       setState(() {
         _extractStatus = EXTRACT_STATUS_COMPLETED;
         _download_process = 0.0;
@@ -140,23 +153,31 @@ class _ExtractPageState extends State<ExtractPage> {
     } catch (e) {
       _handleError(e);
     } finally {
+      if (_cancelExtract) {
+        return;
+      }
       if (_extractStatus != EXTRACT_STATUS_COMPLETED) {
         setState(() {
           _extractStatus = EXTRACT_STATUS_IDLE;
         });
       }
-      _cancelExtract = false;
     }
   }
 
   void _cancelExtraction() {
     _cancelExtract = true;
+    setState(() {
+      _extractStatus = EXTRACT_STATUS_CANCEL;
+    });
     DownloadService.cancelDownload();
     FFmpegService.cancelExtraction();
-    setState(() {
-      _extractStatus = EXTRACT_STATUS_IDLE;
-      _download_process = 0.0;
-      _extract_process = 0.0;
+    Future.delayed(Duration(seconds: 3), () {
+      setState(() {
+        _extractStatus = EXTRACT_STATUS_IDLE;
+        _download_process = 0.0;
+        _extract_process = 0.0;
+        _cancelExtract = false;
+      });
     });
   }
 
@@ -236,7 +257,12 @@ class _ExtractPageState extends State<ExtractPage> {
     String errorMessage;
     if (error is ArgumentError) {
       errorMessage = "URL을 잘못 입력하셨습니다.\nYouTube 주소를 확인해주세요.";
+    } else if (error is PathNotFoundException) {
+      errorMessage = "천천히 눌러 주세요!";
+    } else if (error is Exception) {
+      errorMessage = "알 수 없는 에러가 발생했습니다!";
     } else {
+      // errorMessage = "알 수 없는 에러가 발생했습니다!";
       errorMessage = error.toString();
     }
 
@@ -374,26 +400,57 @@ class _ExtractPageState extends State<ExtractPage> {
                     const SizedBox(height: 16),
                     FileNameInput(fileNameController: _fileNameController),
                     const SizedBox(height: 16),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 600),
-                      child: _extractStatus == EXTRACT_STATUS_EXTRACTING
-                          ? (Column(
-                              children: <Widget>[
-                                ExtractProgressIndicator(
-                                    progress: _download_process),
-                                ExtractProgressIndicator(
-                                    progress: _extract_process),
-                                SizedBox(width: 10),
-                                ExtractCancelButton(
-                                  onPressed: _cancelExtraction,
-                                ),
-                              ],
-                            ))
-                          : ExtractButton(
-                              onPressed: () async {
-                                await _validateAndDownloadVideo();
-                              },
-                            ),
+                    RepaintBoundary(
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 100),
+                        child: _extractStatus == EXTRACT_STATUS_EXTRACTING
+                            ? Column(
+                                children: <Widget>[
+                                  ExtractProgressIndicator(
+                                      progress: _download_process),
+                                  ExtractProgressIndicator(
+                                      progress: _extract_process),
+                                  SizedBox(width: 10),
+                                  ExtractCancelButton(
+                                    onPressed: _cancelExtraction,
+                                  ),
+                                ],
+                              )
+                            : _extractStatus == EXTRACT_STATUS_CANCEL
+                                ? Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        '취소 중...',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      SizedBox(width: 10),
+                                      SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 3.5,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : ExtractButton(
+                                    onPressed: () async {
+                                      setState(() {
+                                        _isAnimating = true;
+                                      });
+                                      await _validateAndDownloadVideo();
+                                      setState(() {
+                                        _isAnimating = false;
+                                      });
+                                    },
+                                  ),
+                      ),
                     ),
                   ],
                 ),
