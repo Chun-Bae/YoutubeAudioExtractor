@@ -64,6 +64,7 @@ class _ExtractPageState extends State<ExtractPage> {
     TextEditingController(text: '00')
   ];
   bool _isSegmentEnabled = false;
+  bool _isGettingVideoTime = false;
   List<String> _logs = [];
   String? _selectedFormat;
 
@@ -264,6 +265,9 @@ class _ExtractPageState extends State<ExtractPage> {
 
   Future<void> _getVideoDuration(String url) async {
     try {
+      setState(() {
+        _isGettingVideoTime = true;
+      });
       Duration duration = await downloadService.getYouTubeVideoDuration(url);
       setState(() {
         _videoDuration = duration;
@@ -276,6 +280,10 @@ class _ExtractPageState extends State<ExtractPage> {
       GetTimeSnackbar(context: context, message: "동영상 시간을 가져왔어요!").show();
     } catch (e) {
       _log('Failed to get video duration: $e');
+    } finally {
+      setState(() {
+        _isGettingVideoTime = false;
+      });
     }
   }
 
@@ -305,14 +313,29 @@ class _ExtractPageState extends State<ExtractPage> {
                     YouTubeUrlInput(
                       urlController: _urlController,
                       onChangeFunc: (url) async {
+                        Future.delayed(Duration(milliseconds: 400));
                         _urlController.text = removeSiParameter(url);
                         await _getVideoDuration(_urlController.text);
                       },
                     ),
                     const SizedBox(height: 16),
-                    TimeSegmentToggle(
-                      isSegmentEnabled: _isSegmentEnabled,
-                      onToggle: _toggleSegment,
+                    Row(
+                      children: [
+                        TimeSegmentToggle(
+                          isSegmentEnabled: _isSegmentEnabled,
+                          onToggle: _toggleSegment,
+                        ),
+                        SizedBox(width: 16),
+                        if (_isGettingVideoTime)
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 3.5,
+                            ),
+                          ),
+                      ],
                     ),
                     TimeIntervalSelector(
                       isSegmentEnabled: _isSegmentEnabled,

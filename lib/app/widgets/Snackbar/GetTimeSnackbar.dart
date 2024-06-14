@@ -4,6 +4,8 @@ class GetTimeSnackbar {
   final BuildContext context;
   final String message;
   final Duration duration;
+  static bool isShowing = false; // 현재 스낵바가 표시되고 있는지 확인하는 플래그
+  static OverlayEntry? _currentOverlayEntry;
 
   GetTimeSnackbar({
     required this.context,
@@ -11,15 +13,19 @@ class GetTimeSnackbar {
     this.duration = const Duration(milliseconds: 2500),
   });
 
-  OverlayEntry? _overlayEntry;
-
   void show() {
+    // 현재 스낵바가 표시되고 있으면 기존 스낵바를 종료
+    // if (isShowing) {
+    //   _currentOverlayEntry?.remove();
+    //   isShowing = false;
+    // }
+
     final overlay = Overlay.of(context);
     if (overlay == null) return;
 
-    _overlayEntry = OverlayEntry(
+    _currentOverlayEntry = OverlayEntry(
       builder: (context) => Positioned(
-        bottom: 5.0,
+        bottom: 40.0,
         left: MediaQuery.of(context).size.width * 0.1,
         width: MediaQuery.of(context).size.width * 0.8,
         child: Material(
@@ -27,21 +33,27 @@ class GetTimeSnackbar {
           child: _SnackbarContent(
             message: message,
             onDismissed: () {
-              _overlayEntry?.remove();
-              _overlayEntry = null;
+              _currentOverlayEntry?.remove();
+              isShowing = false;
+              _currentOverlayEntry = null;
             },
           ),
         ),
       ),
     );
 
-    overlay.insert(_overlayEntry!);
+    overlay.insert(_currentOverlayEntry!);
+    isShowing = true;
 
     Future.delayed(duration).then((_) => hide());
   }
 
   void hide() {
-    _overlayEntry?.markNeedsBuild();
+    if (_currentOverlayEntry != null) {
+      _currentOverlayEntry?.remove();
+      isShowing = false;
+      _currentOverlayEntry = null;
+    }
   }
 }
 
@@ -64,7 +76,7 @@ class __SnackbarContentState extends State<_SnackbarContent>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
 
@@ -81,8 +93,8 @@ class __SnackbarContentState extends State<_SnackbarContent>
 
   void _dismiss() {
     _offsetAnimation = Tween<Offset>(
-      begin: Offset(0, 5),
-      end: Offset(0, 0),
+      begin: Offset(0, 0),
+      end: Offset(0, 5),
     ).animate(CurvedAnimation(
       parent: _controller,
       curve: Curves.easeInOut,
