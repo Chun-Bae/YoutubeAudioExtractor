@@ -32,6 +32,10 @@ String generateFFmpegCommand({
   if (formatCommand == null) {
     throw ArgumentError('Unsupported format: $format');
   }
+  late String command;
 
-  return '-y -i $inputFilePath -ss $startTime -t $duration $formatCommand $outputFilePath';
+  command =
+      '-y -i $inputFilePath -ss $startTime -t $duration $formatCommand $outputFilePath';
+
+  return command;
 }

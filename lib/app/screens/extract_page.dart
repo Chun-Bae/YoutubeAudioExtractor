@@ -10,6 +10,7 @@ import '../widgets/Dialog/InvalidTimeRangeDialog.dart';
 import '../widgets/Dialog/ExtractErrorDialog.dart';
 import '../widgets/Toggle/TimeSegmentToggle.dart';
 import '../../services/time_validation.dart';
+import '../../services/time_duration_service.dart';
 import '../../services/download_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/permission_service.dart';
@@ -73,10 +74,12 @@ class _ExtractPageState extends State<ExtractPage> {
   late NotificationService notificationService;
   late DownloadService downloadService;
   late String downloadedFilePath;
+  Duration _videoDuration = Duration.zero; // 전체 동영상 길이 상태
   final ScrollController _scrollController = ScrollController();
 
   int _extractStatus = EXTRACT_STATUS_IDLE;
-  double _progress = 0.0;
+  double _download_process = 0.0;
+  double _extract_process = 0.0;
 
   @override
   void initState() {
@@ -114,7 +117,7 @@ class _ExtractPageState extends State<ExtractPage> {
   Future<void> _downloadVideo() async {
     setState(() {
       _extractStatus = EXTRACT_STATUS_EXTRACTING;
-      _progress = 0.0;
+      _download_process = 0.0;
     });
 
     try {
@@ -125,7 +128,7 @@ class _ExtractPageState extends State<ExtractPage> {
       await Future.delayed(Duration(milliseconds: 100));
       setState(() {
         _extractStatus = EXTRACT_STATUS_COMPLETED;
-        _progress = 0.0;
+        _download_process = 0.0;
       });
     } catch (e) {
       _handleError(e);
@@ -147,7 +150,7 @@ class _ExtractPageState extends State<ExtractPage> {
     _log("Starting video download");
     await downloadService.downloadYouTubeVideo(_urlController.text, (progress) {
       setState(() {
-        _progress = progress;
+        _download_process = progress;
       });
     }, _log);
     _log("Video download completed");
@@ -159,17 +162,29 @@ class _ExtractPageState extends State<ExtractPage> {
   }
 
   Future<void> _startVideoExtraction(DownloadService downloadService) async {
+    late String startTime;
+    late String duration;
+
     _log("Starting video segment extraction");
-    String startTime = '00:00:10';
-    String duration = '00:00:05';
+    startTime =
+        '${_startTimeControllers[0].text}:${_startTimeControllers[1].text}:${_startTimeControllers[2].text}';
+    duration = '${TimeDurationService().isStartTimeBeforeEndTime(
+      startControllers: _startTimeControllers,
+      endControllers: _endTimeControllers,
+    )}';
+
     String outputFilePath =
         '/${_fileNameController.text}.${_selectedFormat!.toLowerCase()}';
     await downloadService.extractVideoSegment(startTime, duration,
-        downloadedFilePath, outputFilePath, _selectedFormat!, _log);
+        downloadedFilePath, outputFilePath, _selectedFormat!, _log, (progress) {
+      setState(() {
+        _extract_process = progress;
+      });
+    });
     _log("Video segment extraction completed");
 
     setState(() {
-      _progress = 1.0; // 추출 완료 후 진행률 100% 설정
+      _extract_process = 1.0; // 추출 완료 후 진행률 100% 설정
     });
   }
 
@@ -224,9 +239,25 @@ class _ExtractPageState extends State<ExtractPage> {
   void _reset() {
     setState(() {
       _extractStatus = EXTRACT_STATUS_IDLE;
-      _progress = 0.0;
+      _download_process = 0.0;
       _downloadedFilePathController.clear();
     });
+  }
+
+  Future<void> _getVideoDuration(String url) async {
+    try {
+      Duration duration = await downloadService.getYouTubeVideoDuration(url);
+      setState(() {
+        _videoDuration = duration;
+      });
+      _log('Video duration: ${_videoDuration.inSeconds} seconds');
+      TimeDurationService().setEndTimeControllers(
+        controllers: _endTimeControllers,
+        totalSeconds: _videoDuration.inSeconds,
+      );
+    } catch (e) {
+      _log('Failed to get video duration: $e');
+    }
   }
 
   @override
@@ -252,7 +283,12 @@ class _ExtractPageState extends State<ExtractPage> {
                   children: [
                     ExtractInstructionText(),
                     const SizedBox(height: 16),
-                    YouTubeUrlInput(urlController: _urlController),
+                    YouTubeUrlInput(
+                      urlController: _urlController,
+                      onChangeFunc: (url) async {
+                        await _getVideoDuration(url);
+                      },
+                    ),
                     const SizedBox(height: 16),
                     TimeSegmentToggle(
                       isSegmentEnabled: _isSegmentEnabled,
@@ -279,7 +315,14 @@ class _ExtractPageState extends State<ExtractPage> {
                     AnimatedSwitcher(
                       duration: const Duration(milliseconds: 600),
                       child: _extractStatus == EXTRACT_STATUS_EXTRACTING
-                          ? ExtractProgressIndicator(progress: _progress)
+                          ? (Column(
+                              children: <Widget>[
+                                ExtractProgressIndicator(
+                                    progress: _download_process),
+                                ExtractProgressIndicator(
+                                    progress: _extract_process),
+                              ],
+                            ))
                           : ExtractButton(
                               onPressed: () async {
                                 await _validateAndDownloadVideo();

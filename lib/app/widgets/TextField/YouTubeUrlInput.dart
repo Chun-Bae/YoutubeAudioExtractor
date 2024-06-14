@@ -2,13 +2,20 @@ import 'package:flutter/material.dart';
 
 class YouTubeUrlInput extends StatelessWidget {
   final TextEditingController urlController;
+  final Future<void> Function(String) onChangeFunc;
 
-  YouTubeUrlInput({required this.urlController});
+  YouTubeUrlInput({
+    required this.urlController,
+    required this.onChangeFunc,
+  });
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: urlController,
+      onChanged: (url) {
+        onChangeFunc(url);
+      },
       decoration: const InputDecoration(
         labelText: 'Input Youtube URL...',
         labelStyle: TextStyle(color: Colors.white),

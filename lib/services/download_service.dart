@@ -6,11 +6,17 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class DownloadService {
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   late String title;
+  late String downloadedFilePath;
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   DownloadService(this.flutterLocalNotificationsPlugin);
 
-  late String downloadedFilePath;
+  Future<Duration> getYouTubeVideoDuration(String videoUrl) async {
+    var yt = YoutubeExplode();
+    var video = await yt.videos.get(videoUrl);
+    yt.close();
+    return video.duration ?? Duration.zero;
+  }
 
   Future<void> downloadYouTubeVideo(String videoUrl,
       Function(double) onProgress, Function(String) log) async {
@@ -62,10 +68,11 @@ class DownloadService {
       String inputFilePath,
       String outputFilePath,
       String formatCommand,
-      Function(String) log) async {
+      Function(String) log,
+      Function(double)? onProgress) async {
     var ffmpegService = FFmpegService();
-    await ffmpegService.extractVideoSegment(
-        startTime, duration, inputFilePath, outputFilePath, formatCommand, log);
+    await ffmpegService.extractVideoSegment(startTime, duration, inputFilePath,
+        outputFilePath, formatCommand, log, onProgress);
     log("Video segment extraction complete");
   }
 
