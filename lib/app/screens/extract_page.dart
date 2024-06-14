@@ -1,6 +1,7 @@
 import '../widgets/AppBar/WelcomeAppBar.dart';
 import '../widgets/TextField/TimeIntervalSelector.dart';
 import '../widgets/TextField/YouTubeUrlInput.dart';
+import '../widgets/TextField/FileNameInput.dart';
 import '../widgets/TextField/ExtractInstructionText.dart';
 import '../widgets/Button/ExtractButton.dart';
 import '../widgets/Dropdown/FormatDropdown.dart';
@@ -13,6 +14,7 @@ import '../../services/download_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/permission_service.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class ExtractPage extends StatefulWidget {
@@ -22,6 +24,8 @@ class ExtractPage extends StatefulWidget {
 
 class _ExtractPageState extends State<ExtractPage> {
   TextEditingController _urlController = TextEditingController();
+  TextEditingController _fileNameController =
+      TextEditingController(text: 'extracted_file');
   TextEditingController _downloadedFilePathController = TextEditingController();
   final List<String> audioFormats = [
     'MP3',
@@ -159,7 +163,7 @@ class _ExtractPageState extends State<ExtractPage> {
     String startTime = '00:00:10';
     String duration = '00:00:05';
     String outputFilePath =
-        '/extracted_segment.${_selectedFormat!.toLowerCase()}';
+        '/${_fileNameController.text}.${_selectedFormat!.toLowerCase()}';
     await downloadService.extractVideoSegment(startTime, duration,
         downloadedFilePath, outputFilePath, _selectedFormat!, _log);
     _log("Video segment extraction completed");
@@ -230,47 +234,64 @@ class _ExtractPageState extends State<ExtractPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF14181B),
       appBar: WelcomeAppBar(),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ExtractInstructionText(),
-            const SizedBox(height: 16),
-            YouTubeUrlInput(urlController: _urlController),
-            const SizedBox(height: 16),
-            TimeSegmentToggle(
-              isSegmentEnabled: _isSegmentEnabled,
-              onToggle: _toggleSegment,
-            ),
-            TimeIntervalSelector(
-              isSegmentEnabled: _isSegmentEnabled,
-              startTimeControllers: _startTimeControllers,
-              endTimeControllers: _endTimeControllers,
-            ),
-            const SizedBox(height: 16),
-            FormatDropdown(
-              audioFormats: audioFormats,
-              videoFormats: videoFormats,
-              onChanged: (String? value) {
-                setState(() {
-                  _selectedFormat = value;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 600),
-              child: _extractStatus == EXTRACT_STATUS_EXTRACTING
-                  ? ExtractProgressIndicator(progress: _progress)
-                  : ExtractButton(
-                      onPressed: () async {
-                        await _validateAndDownloadVideo();
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight,
+              ),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 10.0,
+                  right: 10.0,
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ExtractInstructionText(),
+                    const SizedBox(height: 16),
+                    YouTubeUrlInput(urlController: _urlController),
+                    const SizedBox(height: 16),
+                    TimeSegmentToggle(
+                      isSegmentEnabled: _isSegmentEnabled,
+                      onToggle: _toggleSegment,
+                    ),
+                    TimeIntervalSelector(
+                      isSegmentEnabled: _isSegmentEnabled,
+                      startTimeControllers: _startTimeControllers,
+                      endTimeControllers: _endTimeControllers,
+                    ),
+                    const SizedBox(height: 16),
+                    FormatDropdown(
+                      audioFormats: audioFormats,
+                      videoFormats: videoFormats,
+                      onChanged: (String? value) {
+                        setState(() {
+                          _selectedFormat = value;
+                        });
                       },
                     ),
+                    const SizedBox(height: 16),
+                    FileNameInput(fileNameController: _fileNameController),
+                    const SizedBox(height: 16),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 600),
+                      child: _extractStatus == EXTRACT_STATUS_EXTRACTING
+                          ? ExtractProgressIndicator(progress: _progress)
+                          : ExtractButton(
+                              onPressed: () async {
+                                await _validateAndDownloadVideo();
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
