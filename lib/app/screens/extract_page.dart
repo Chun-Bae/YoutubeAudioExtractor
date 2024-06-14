@@ -207,6 +207,7 @@ class _ExtractPageState extends State<ExtractPage> {
 
     late String startTime;
     late String duration;
+    late String outputFilePath;
     _log("Starting video segment extraction");
     startTime =
         '${_startTimeControllers[0].text}:${_startTimeControllers[1].text}:${_startTimeControllers[2].text}';
@@ -218,10 +219,11 @@ class _ExtractPageState extends State<ExtractPage> {
       _extract_process = 0.0; // 추출 완료 후 진행률 100% 설정
     });
     if (_fileNameController.text.isEmpty) {
-      _fileNameController.text = 'extracted_file';
+      outputFilePath = '/extract_file.${_selectedFormat!.toLowerCase()}';
+    } else {
+      outputFilePath =
+          '/${_fileNameController.text}.${_selectedFormat!.toLowerCase()}';
     }
-    String outputFilePath =
-        '/${_fileNameController.text}.${_selectedFormat!.toLowerCase()}';
     await downloadService.extractVideoSegment(startTime, duration,
         downloadedFilePath, outputFilePath, _selectedFormat!, _log, (progress) {
       setState(() {
@@ -243,10 +245,16 @@ class _ExtractPageState extends State<ExtractPage> {
   Future<void> _showExtractionCompleteNotification(
       DownloadService downloadService) async {
     if (_cancelExtract) return;
+    late String fileName;
+    if (_fileNameController.text.isEmpty) {
+      fileName = 'extract_file';
+    } else {
+      fileName = _fileNameController.text;
+    }
     final directoryPath =
         downloadedFilePath.substring(0, downloadedFilePath.lastIndexOf('/'));
-    await downloadService.showNotification(directoryPath,
-        "${_fileNameController.text}.${_selectedFormat!.toLowerCase()}");
+    await downloadService.showNotification(
+        directoryPath, "${fileName}.${_selectedFormat!.toLowerCase()}");
   }
 
   void _handleError(dynamic error) {
