@@ -26,8 +26,8 @@ class NotificationService {
   Future<void> showNotification(
       String title, String body, String directoryPath) async {
     const androidPlatformChannelSpecifics = AndroidNotificationDetails(
-        'your_channel_id', 'your_channel_name',
-        channelDescription: 'your_channel_description',
+        'youtube_extract_channel', 'YoutubeExtract',
+        channelDescription: 'Notification channel for downloads',
         importance: Importance.max,
         priority: Priority.high,
         showWhen: false);

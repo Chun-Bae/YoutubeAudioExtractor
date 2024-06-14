@@ -7,6 +7,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class DownloadService {
   late String title;
+
   late String downloadedFilePath;
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   DownloadService(this.flutterLocalNotificationsPlugin);
@@ -76,11 +77,11 @@ class DownloadService {
     log("Video segment extraction complete");
   }
 
-  Future<void> showNotification(String directoryPath) async {
+  Future<void> showNotification(String directoryPath, String fileName) async {
     final notificationService =
         NotificationService(flutterLocalNotificationsPlugin);
     await notificationService.showNotification(
-        title, '다운로드 완료!', directoryPath);
+        title, '${fileName} 다운로드 완료!', directoryPath);
   }
 
   Future<void> deleteOriginalVideo(Function(String) log) async {

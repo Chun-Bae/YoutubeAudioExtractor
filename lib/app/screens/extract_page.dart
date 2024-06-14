@@ -129,6 +129,7 @@ class _ExtractPageState extends State<ExtractPage> {
       setState(() {
         _extractStatus = EXTRACT_STATUS_COMPLETED;
         _download_process = 0.0;
+        _extract_process = 0.0;
       });
     } catch (e) {
       _handleError(e);
@@ -143,7 +144,7 @@ class _ExtractPageState extends State<ExtractPage> {
 
   Future<void> _startVideoDownload(DownloadService downloadService) async {
     if (_selectedFormat == null) {
-      _handleError('No format selected');
+      _handleError('포맷을 지정해주세요!');
       return;
     }
 
@@ -172,7 +173,7 @@ class _ExtractPageState extends State<ExtractPage> {
       startControllers: _startTimeControllers,
       endControllers: _endTimeControllers,
     )}';
-        setState(() {
+    setState(() {
       _extract_process = 0.0; // 추출 완료 후 진행률 100% 설정
     });
     String outputFilePath =
@@ -199,15 +200,26 @@ class _ExtractPageState extends State<ExtractPage> {
       DownloadService downloadService) async {
     final directoryPath =
         downloadedFilePath.substring(0, downloadedFilePath.lastIndexOf('/'));
-    await downloadService.showNotification(directoryPath);
+    await downloadService.showNotification(directoryPath,
+        "${_fileNameController.text}.${_selectedFormat!.toLowerCase()}");
   }
 
   void _handleError(dynamic error) {
-    _log("Error: $error");
+    _log("Error: $error, type: ${error.runtimeType}");
+    if (error is TypeError) {
+      return;
+    }
+    String errorMessage;
+    if (error is ArgumentError) {
+      errorMessage = "URL을 잘못 입력하셨습니다.\nYouTube 주소를 확인해주세요.";
+    } else {
+      errorMessage = error.toString();
+    }
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return ExtractErrorDialog(context, error.toString());
+        return ExtractErrorDialog(context, errorMessage);
       },
     );
   }
