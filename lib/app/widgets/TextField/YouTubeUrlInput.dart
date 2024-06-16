@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 class YouTubeUrlInput extends StatelessWidget {
   final TextEditingController urlController;
-  final Future<void> Function(String) onChangeFunc;
+  final Future<void> Function(String) onChanged;
 
   YouTubeUrlInput({
     required this.urlController,
-    required this.onChangeFunc,
+    required this.onChanged,
   });
 
   @override
@@ -14,7 +14,7 @@ class YouTubeUrlInput extends StatelessWidget {
     return TextField(
       controller: urlController,
       onChanged: (url) {
-        onChangeFunc(url);
+        onChanged(url);
       },
       decoration: const InputDecoration(
         labelText: 'Input Youtube URL...',

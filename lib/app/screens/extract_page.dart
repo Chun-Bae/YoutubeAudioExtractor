@@ -20,8 +20,11 @@ import '../../services/ffmpeg_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/permission_service.dart';
 import '../../services/url_validation_service.dart';
+import '../../services/video_duration_service.dart';
 import '../../models/formatter.dart';
 import '../../models/extract_status.dart';
+import '../../providers/extract_text_editing_provider.dart';
+import '../../providers/extraction_provider.dart';
 
 import 'package:flutter/material.dart';
 import 'dart:async';
@@ -37,18 +40,23 @@ class ExtractPage extends StatefulWidget {
 class _ExtractPageState extends State<ExtractPage> {
   TextEditingController _urlController = TextEditingController();
   TextEditingController _fileNameController = TextEditingController();
+  TextEditingController __fileNameWithformatController =
+      TextEditingController();
+  TextEditingController _downloadedPathController = TextEditingController();
+  TextEditingController _extractedPathController = TextEditingController();
+  List<TextEditingController> _startTimeControllers = [
+    TextEditingController(text: '00'),
+    TextEditingController(text: '00'),
+    TextEditingController(text: '00'),
+  ];
+  List<TextEditingController> _endTimeControllers = [
+    TextEditingController(text: '00'),
+    TextEditingController(text: '00'),
+    TextEditingController(text: '00'),
+  ];
+  TextEditingController _durationTimeController = TextEditingController();
   TextEditingController _downloadedFilePathController = TextEditingController();
 
-  final List<TextEditingController> _startTimeControllers = [
-    TextEditingController(text: '00'),
-    TextEditingController(text: '00'),
-    TextEditingController(text: '00')
-  ];
-  final List<TextEditingController> _endTimeControllers = [
-    TextEditingController(text: '00'),
-    TextEditingController(text: '00'),
-    TextEditingController(text: '00')
-  ];
   bool _isSegmentEnabled = false;
   bool _isGettingVideoTime = false;
   bool _cancelExtract = false;
@@ -60,9 +68,10 @@ class _ExtractPageState extends State<ExtractPage> {
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   late NotificationService notificationService;
   late DownloadService downloadService;
+  late VideoDurationService videoDurationService;
   late String downloadedFilePath;
 
-  Duration _videoDuration = Duration.zero; // 전체 동영상 길이 상태
+  Duration _videoDuration = Duration.zero;
   final ScrollController _scrollController = ScrollController();
 
   int _extractStatus = EXTRACT_STATUS_IDLE;
@@ -80,6 +89,8 @@ class _ExtractPageState extends State<ExtractPage> {
     flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
     notificationService = NotificationService(flutterLocalNotificationsPlugin);
     downloadService = DownloadService(flutterLocalNotificationsPlugin);
+    videoDurationService =
+        VideoDurationService(downloadService: downloadService);
     await notificationService.initialize(_log);
   }
 
@@ -293,14 +304,20 @@ class _ExtractPageState extends State<ExtractPage> {
     });
   }
 
-  Future<void> _getVideoDuration(String url) async {
+  Future<void> _getVideoDuration({
+    required BuildContext context,
+  }) async {
     Future.delayed(Duration(milliseconds: 400));
-    _urlController.text = removeSiParameter(url);
+    final extract_text =
+        Provider.of<ExtractTextEditingProvider>(context, listen: false);
+    extract_text.url = removeSiParameter(extract_text.url);
+
     try {
       setState(() {
         _isGettingVideoTime = true;
       });
-      Duration duration = await downloadService.getYouTubeVideoDuration(url);
+      Duration duration =
+          await downloadService.getYouTubeVideoDuration(extract_text.url);
       setState(() {
         _videoDuration = duration;
       });
@@ -321,6 +338,9 @@ class _ExtractPageState extends State<ExtractPage> {
 
   @override
   Widget build(BuildContext context) {
+    final extract_text =
+        Provider.of<ExtractTextEditingProvider>(context, listen: false);
+
     return Scaffold(
       backgroundColor: const Color(0xFF14181B),
       appBar: WelcomeAppBar(),
@@ -343,9 +363,10 @@ class _ExtractPageState extends State<ExtractPage> {
                     ExtractInstructionText(),
                     const SizedBox(height: 16),
                     YouTubeUrlInput(
-                      urlController: _urlController,
-                      onChangeFunc: (url) async {
-                        await _getVideoDuration(url);
+                      urlController: extract_text.urlController,
+                      onChanged: (url) async {
+                        await videoDurationService.getVideoDuration(
+                            context: context);
                       },
                     ),
                     const SizedBox(height: 16),
@@ -356,13 +377,19 @@ class _ExtractPageState extends State<ExtractPage> {
                           onToggle: _toggleSegment,
                         ),
                         SizedBox(width: 16),
-                        if (_isGettingVideoTime) GettingVideoTimeIndicator(),
+                        Consumer<ExtractionProvider>(
+                          builder: (context, extraction, child) {
+                            return extraction.isGettingVideoTime
+                                ? GettingVideoTimeIndicator()
+                                : Container();
+                          },
+                        ),
                       ],
                     ),
                     TimeIntervalSelector(
                       isSegmentEnabled: _isSegmentEnabled,
-                      startTimeControllers: _startTimeControllers,
-                      endTimeControllers: _endTimeControllers,
+                      startTimeControllers: extract_text.startTimeControllers,
+                      endTimeControllers: extract_text.endTimeControllers,
                     ),
                     const SizedBox(height: 16),
                     FormatDropdown(
