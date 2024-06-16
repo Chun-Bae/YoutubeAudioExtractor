@@ -1,10 +1,9 @@
-import 'dart:io';
-
 import '../widgets/AppBar/WelcomeAppBar.dart';
 import '../widgets/TextField/TimeIntervalSelector.dart';
 import '../widgets/TextField/YouTubeUrlInput.dart';
 import '../widgets/TextField/FileNameInput.dart';
 import '../widgets/TextField/ExtractInstructionText.dart';
+import '../widgets/TextField/CancelText.dart';
 import '../widgets/Button/ExtractButton.dart';
 import '../widgets/Button/ExtractCancelButton.dart';
 import '../widgets/Dropdown/FormatDropdown.dart';
@@ -20,8 +19,12 @@ import '../../services/ffmpeg_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/permission_service.dart';
 import '../../services/url_validation_service.dart';
+import '../../models/formatter.dart';
+import '../../models/extract_status.dart';
+
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class ExtractPage extends StatefulWidget {
@@ -33,30 +36,7 @@ class _ExtractPageState extends State<ExtractPage> {
   TextEditingController _urlController = TextEditingController();
   TextEditingController _fileNameController = TextEditingController();
   TextEditingController _downloadedFilePathController = TextEditingController();
-  final List<String> audioFormats = [
-    'MP3',
-    'WAV',
-    'FLAC',
-    'AAC',
-    'WMA',
-    'OGG',
-    'M4A',
-    'AMR',
-    'AIFF',
-    'AU'
-  ];
-  final List<String> videoFormats = [
-    'MP4',
-    'AVI',
-    'MKV',
-    'MOV',
-    'FLV',
-    'WMV',
-    'MPEG',
-    'WEBM',
-    'OGV',
-    'TS'
-  ];
+
   final List<TextEditingController> _startTimeControllers = [
     TextEditingController(text: '00'),
     TextEditingController(text: '00'),
@@ -71,14 +51,9 @@ class _ExtractPageState extends State<ExtractPage> {
   bool _isGettingVideoTime = false;
   bool _cancelExtract = false;
   bool _isAnimating = false;
-
   List<String> _logs = [];
-  String? _selectedFormat;
 
-  static const int EXTRACT_STATUS_IDLE = 0;
-  static const int EXTRACT_STATUS_EXTRACTING = 1;
-  static const int EXTRACT_STATUS_COMPLETED = 2;
-  static const int EXTRACT_STATUS_CANCEL = 3;
+  String? _selectedFormat;
 
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   late NotificationService notificationService;
@@ -216,7 +191,7 @@ class _ExtractPageState extends State<ExtractPage> {
       endControllers: _endTimeControllers,
     )}';
     setState(() {
-      _extract_process = 0.0; // 추출 완료 후 진행률 100% 설정
+      _extract_process = 0.0;
     });
     if (_fileNameController.text.isEmpty) {
       outputFilePath = '/extract_file.${_selectedFormat!.toLowerCase()}';
@@ -233,7 +208,7 @@ class _ExtractPageState extends State<ExtractPage> {
     _log("Video segment extraction completed");
 
     setState(() {
-      _extract_process = 1.0; // 추출 완료 후 진행률 100% 설정
+      _extract_process = 1.0;
     });
   }
 
@@ -317,6 +292,8 @@ class _ExtractPageState extends State<ExtractPage> {
   }
 
   Future<void> _getVideoDuration(String url) async {
+    Future.delayed(Duration(milliseconds: 400));
+    _urlController.text = removeSiParameter(url);
     try {
       setState(() {
         _isGettingVideoTime = true;
@@ -425,28 +402,7 @@ class _ExtractPageState extends State<ExtractPage> {
                                 ],
                               )
                             : _extractStatus == EXTRACT_STATUS_CANCEL
-                                ? Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        '취소 중...',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      SizedBox(width: 10),
-                                      SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 3.5,
-                                        ),
-                                      ),
-                                    ],
-                                  )
+                                ? const CancelText()
                                 : ExtractButton(
                                     onPressed: () async {
                                       setState(() {
