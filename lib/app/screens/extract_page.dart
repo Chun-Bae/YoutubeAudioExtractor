@@ -8,6 +8,7 @@ import '../widgets/Button/ExtractButton.dart';
 import '../widgets/Button/ExtractCancelButton.dart';
 import '../widgets/Dropdown/FormatDropdown.dart';
 import '../widgets/Indicator/ExtractProgressIndicator.dart';
+import '../widgets/Indicator/GettingVideoTimeIndicator.dart';
 import '../widgets/Dialog/InvalidTimeRangeDialog.dart';
 import '../widgets/Dialog/ExtractErrorDialog.dart';
 import '../widgets/Toggle/TimeSegmentToggle.dart';
@@ -26,6 +27,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:provider/provider.dart';
 
 class ExtractPage extends StatefulWidget {
   @override
@@ -343,9 +345,7 @@ class _ExtractPageState extends State<ExtractPage> {
                     YouTubeUrlInput(
                       urlController: _urlController,
                       onChangeFunc: (url) async {
-                        Future.delayed(Duration(milliseconds: 400));
-                        _urlController.text = removeSiParameter(url);
-                        await _getVideoDuration(_urlController.text);
+                        await _getVideoDuration(url);
                       },
                     ),
                     const SizedBox(height: 16),
@@ -356,15 +356,7 @@ class _ExtractPageState extends State<ExtractPage> {
                           onToggle: _toggleSegment,
                         ),
                         SizedBox(width: 16),
-                        if (_isGettingVideoTime)
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 3.5,
-                            ),
-                          ),
+                        if (_isGettingVideoTime) GettingVideoTimeIndicator(),
                       ],
                     ),
                     TimeIntervalSelector(
