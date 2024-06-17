@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-
 import '../app/widgets/Dialog/ExtractErrorDialog.dart';
 
 class LogProvider with ChangeNotifier {
@@ -19,7 +18,8 @@ class LogProvider with ChangeNotifier {
   String getErrorMessage(dynamic error) {
     if (error is ArgumentError && error.message == 'format') {
       return '포맷을 지정해주세요!';
-    } else if (error is ArgumentError && error.message == 'Download cancelled') {
+    } else if (error is ArgumentError &&
+        error.message == 'Download cancelled') {
       return 'Download cancelled';
     } else if (error is ArgumentError) {
       return "URL을 잘못 입력하셨습니다.\nYouTube 주소를 확인해주세요.";
@@ -35,7 +35,7 @@ class LogProvider with ChangeNotifier {
   void handleError(BuildContext context, dynamic error) {
     final errorMessage = getErrorMessage(error);
     writeLog("Error: $error, type: ${error.runtimeType}");
-    if(errorMessage == 'Download cancelled') {
+    if (errorMessage == 'Download cancelled') {
       return;
     }
     showDialog(

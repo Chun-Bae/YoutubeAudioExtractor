@@ -103,6 +103,8 @@ class _ExtractPageState extends State<ExtractPage> {
     final logProvider = Provider.of<LogProvider>(context, listen: false);
 
     try {
+      DownloadService.cancelInitDownload();
+      FFmpegService.cancelInitExtraction();
       setState(() {
         _extractStatus = EXTRACT_STATUS_EXTRACTING;
       });

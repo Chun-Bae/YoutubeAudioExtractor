@@ -98,4 +98,8 @@ class FFmpegService {
   static void cancelExtraction() {
     isCancelled = true;
   }
+
+  static void cancelInitExtraction() {
+    isCancelled = false;
+  }
 }

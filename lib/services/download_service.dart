@@ -6,7 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 
-import './ffmpeg_service.dart';
+import 'ffmpeg_service.dart';
 import '../providers/extract_text_editing_provider.dart';
 import '../providers/download_provider.dart';
 import '../providers/log_provider.dart';
@@ -16,7 +16,7 @@ class DownloadService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   final FFmpegService _ffmpegService = FFmpegService();
   late String _title;
-  late String _downloadedFilePath;
+  String? _downloadedFilePath;
 
   static bool isCancelled = false;
 
@@ -27,8 +27,8 @@ class DownloadService {
   }
 
   // downloadedFilePath
-  String get downloadedFilePath => _downloadedFilePath;
-  set downloadedFilePath(String value) {
+  String? get downloadedFilePath => _downloadedFilePath;
+  set downloadedFilePath(String? value) {
     _downloadedFilePath = value;
   }
 
@@ -68,7 +68,7 @@ class DownloadService {
     downloadedFilePath = '$externalPath/downloaded_video.mp4';
     log("File path: $downloadedFilePath");
 
-    var file = File(downloadedFilePath);
+    var file = File(downloadedFilePath!);
     var output = file.openWrite();
 
     // Download the video with progress
@@ -77,24 +77,20 @@ class DownloadService {
 
     onProgress(0.0);
 
-    try {
-      await for (var data in stream) {
-        if (isCancelled) {
-          throw Exception("Download cancelled");
-        }
-
-        downloadedBytes += data.length;
-        onProgress(downloadedBytes / totalBytes);
-        output.add(data);
-      }
-    } catch (e) {
-      log("Download cancelled");
-      await output.close();
-      if (await file.exists()) {
+    await for (var data in stream) {
+      if (isCancelled) {
+        isCancelled = false;
+        log("Download cancelled");
+        _ffmpegService.dispose();
+        await output.close();
         await file.delete();
+        yt.close();
+        throw ArgumentError("Download cancelled");
       }
-      yt.close();
-      throw e;
+
+      downloadedBytes += data.length;
+      onProgress(downloadedBytes / totalBytes);
+      output.add(data);
     }
 
     onProgress(1.0);
@@ -117,34 +113,26 @@ class DownloadService {
 
     logProvider.writeLog("Starting video download");
 
-    try {
-      await downloadYouTubeVideo(
-        url: extractText.url,
-        onProgress: (progress) => downloadProvider.downloadProgress = progress,
-        log: logProvider.writeLog,
-      );
+    await downloadYouTubeVideo(
+      url: extractText.url,
+      onProgress: (progress) => downloadProvider.downloadProgress = progress,
+      log: logProvider.writeLog,
+    );
 
-      extractText.videoTitle = title;
-      extractText.downloadedPath = downloadedFilePath;
-      logProvider.writeLog("Video download completed");
-    } catch (e) {
-      logProvider.writeLog("Error during download: $e");
-    }
+    extractText.videoTitle = title;
+    extractText.downloadedPath = downloadedFilePath!;
+    logProvider.writeLog("Video download completed");
   }
 
   Future<void> deleteOriginalVideo(BuildContext context) async {
     final logProvider = Provider.of<LogProvider>(context, listen: false);
-    var file = File(downloadedFilePath);
+    var file = File(downloadedFilePath!);
     if (await file.exists()) {
       await file.delete();
       logProvider.writeLog('Original video file deleted: $downloadedFilePath');
     } else {
       logProvider.writeLog('Original video file not found for deletion');
     }
-  }
-
-  static void cancelDownload() {
-    isCancelled = true;
   }
 
   Future<void> startVideoExtraction(BuildContext context) async {
@@ -164,20 +152,16 @@ class DownloadService {
     );
 
     logProvider.writeLog("Starting video segment extraction");
-    try {
-      await extractVideoSegment(
-        startTime: extractText.startTime,
-        duration: extractText.durationTime,
-        inputFilePath: extractText.downloadedPath,
-        outputFileWithFormatName: extractText.fileNameWithformat,
-        formatCommand: extractText.format,
-        log: logProvider.writeLog,
-        onProgress: (progress) => extractionProvider.extractProgress = progress,
-      );
-      logProvider.writeLog("Video segment extraction completed");
-    } catch (e) {
-      logProvider.handleError(context, e);
-    }
+    await extractVideoSegment(
+      startTime: extractText.startTime,
+      duration: extractText.durationTime,
+      inputFilePath: extractText.downloadedPath!,
+      outputFileWithFormatName: extractText.fileNameWithformat,
+      formatCommand: extractText.format,
+      log: logProvider.writeLog,
+      onProgress: (progress) => extractionProvider.extractProgress = progress,
+    );
+    logProvider.writeLog("Video segment extraction completed");
   }
 
   Future<void> extractVideoSegment({
@@ -189,20 +173,24 @@ class DownloadService {
     required Function(String) log,
     required Function(double)? onProgress,
   }) async {
-    try {
-      await _ffmpegService.extractVideoSegment(
-        startTime: startTime,
-        duration: duration,
-        inputFilePath: inputFilePath,
-        outputFileWithFormatName: outputFileWithFormatName,
-        formatCommand: formatCommand,
-        log: log,
-        onProgress: onProgress,
-      );
-      log("Video segment extraction complete");
-    } catch (e) {
-      throw Exception("Extraction failed: $e");
-    }
+    await _ffmpegService.extractVideoSegment(
+      startTime: startTime,
+      duration: duration,
+      inputFilePath: inputFilePath,
+      outputFileWithFormatName: outputFileWithFormatName,
+      formatCommand: formatCommand,
+      log: log,
+      onProgress: onProgress,
+    );
+    log("Video segment extraction complete");
+  }
+
+  static void cancelDownload() {
+    isCancelled = true;
+  }
+
+  static void cancelInitDownload() {
+    isCancelled = false;
   }
 
   void dispose() {
