@@ -10,25 +10,22 @@ import '../widgets/Dropdown/FormatDropdown.dart';
 import '../widgets/Indicator/ExtractProgressIndicator.dart';
 import '../widgets/Indicator/GettingVideoTimeIndicator.dart';
 import '../widgets/Dialog/InvalidTimeRangeDialog.dart';
-import '../widgets/Dialog/ExtractErrorDialog.dart';
 import '../widgets/Toggle/TimeSegmentToggle.dart';
-import '../widgets/Snackbar/GetTimeSnackbar.dart';
 import '../../services/time_validation_service.dart';
 import '../../services/time_duration_service.dart';
 import '../../services/download_service.dart';
 import '../../services/ffmpeg_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/permission_service.dart';
-import '../../services/url_validation_service.dart';
 import '../../services/video_duration_service.dart';
 import '../../models/formatter.dart';
 import '../../models/extract_status.dart';
 import '../../providers/extract_text_editing_provider.dart';
 import '../../providers/extraction_provider.dart';
+import '../../providers/log_provider.dart';
 
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
 
@@ -38,30 +35,10 @@ class ExtractPage extends StatefulWidget {
 }
 
 class _ExtractPageState extends State<ExtractPage> {
-  TextEditingController _urlController = TextEditingController();
-  TextEditingController _fileNameController = TextEditingController();
-  TextEditingController __fileNameWithformatController =
-      TextEditingController();
-  TextEditingController _downloadedPathController = TextEditingController();
-  TextEditingController _extractedPathController = TextEditingController();
-  List<TextEditingController> _startTimeControllers = [
-    TextEditingController(text: '00'),
-    TextEditingController(text: '00'),
-    TextEditingController(text: '00'),
-  ];
-  List<TextEditingController> _endTimeControllers = [
-    TextEditingController(text: '00'),
-    TextEditingController(text: '00'),
-    TextEditingController(text: '00'),
-  ];
-  TextEditingController _durationTimeController = TextEditingController();
-  TextEditingController _downloadedFilePathController = TextEditingController();
 
   bool _isSegmentEnabled = false;
-  bool _isGettingVideoTime = false;
   bool _cancelExtract = false;
   bool _isAnimating = false;
-  List<String> _logs = [];
 
   String? _selectedFormat;
 
@@ -71,9 +48,6 @@ class _ExtractPageState extends State<ExtractPage> {
   late VideoDurationService videoDurationService;
   late String downloadedFilePath;
 
-  Duration _videoDuration = Duration.zero;
-  final ScrollController _scrollController = ScrollController();
-
   int _extractStatus = EXTRACT_STATUS_IDLE;
   double _download_process = 0.0;
   double _extract_process = 0.0;
@@ -81,17 +55,19 @@ class _ExtractPageState extends State<ExtractPage> {
   @override
   void initState() {
     super.initState();
-    PermissionService.requestStoragePermission(_log);
-    _initializeServices();
+    _initializeServices(context);
   }
 
-  void _initializeServices() async {
+  void _initializeServices(BuildContext context) async {
+    final logProvider = Provider.of<LogProvider>(context, listen: false);
+
+    PermissionService.requestStoragePermission(logProvider.log);
     flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
     notificationService = NotificationService(flutterLocalNotificationsPlugin);
     downloadService = DownloadService(flutterLocalNotificationsPlugin);
     videoDurationService =
         VideoDurationService(downloadService: downloadService);
-    await notificationService.initialize(_log);
+    await notificationService.initialize(logProvider.log);
   }
 
   void _toggleSegment(bool value) {
@@ -100,18 +76,22 @@ class _ExtractPageState extends State<ExtractPage> {
     });
   }
 
-  Future<void> _validateAndDownloadVideo() async {
+  Future<void> _validateAndDownloadVideo(BuildContext context) async {
+    final logProvider = Provider.of<LogProvider>(context, listen: false);
+    final extractText =
+        Provider.of<ExtractTextEditingProvider>(context, listen: false);
+
     setState(() {
       _isAnimating = true;
     });
     if (TimeValidationService().isStartTimeBeforeEndTime(
-      startControllers: _startTimeControllers,
-      endControllers: _endTimeControllers,
+      startControllers: extractText.startTimeControllers,
+      endControllers: extractText.endTimeControllers,
     )) {
-      _log("Time validation passed");
-      await _downloadVideo();
+      logProvider.log("Time validation passed");
+      await _downloadVideo(context);
     } else {
-      _log("Time validation failed");
+      logProvider.log("Time validation failed");
       _showInvalidTimeRangeDialog();
     }
     setState(() {
@@ -119,16 +99,24 @@ class _ExtractPageState extends State<ExtractPage> {
     });
   }
 
-  Future<void> _downloadVideo() async {
+  Future<void> _downloadVideo(BuildContext context) async {
+    final extractText =
+        Provider.of<ExtractTextEditingProvider>(context, listen: false);
+    final extraction = Provider.of<ExtractionProvider>(context, listen: false);
+    final logProvider = Provider.of<LogProvider>(context, listen: false);
     setState(() {
       _extractStatus = EXTRACT_STATUS_EXTRACTING;
       _download_process = 0.0;
     });
     try {
-      await _startVideoDownload(downloadService);
-      await _startVideoExtraction(downloadService);
-      await _deleteOriginalVideo(downloadService);
-      await _showExtractionCompleteNotification(downloadService);
+      await _startVideoDownload(context, downloadService);
+      await _startVideoExtraction(context, downloadService);
+      await _deleteOriginalVideo(context, downloadService);
+      await notificationService.showExtractionCompleteNotification(
+        downloadedFilePath: downloadedFilePath,
+        fileNameWithformat: extractText.fileNameWithformat,
+        cancelExtract: extraction.cancelExtract,
+      );
       await Future.delayed(Duration(milliseconds: 100));
       if (_cancelExtract) {
         return;
@@ -139,7 +127,7 @@ class _ExtractPageState extends State<ExtractPage> {
         _extract_process = 0.0;
       });
     } catch (e) {
-      _handleError(e);
+      logProvider.handleError(context, e);
     } finally {
       if (_cancelExtract) {
         return;
@@ -169,105 +157,102 @@ class _ExtractPageState extends State<ExtractPage> {
     });
   }
 
-  Future<void> _startVideoDownload(DownloadService downloadService) async {
+  Future<void> _startVideoDownload(
+    BuildContext context,
+    DownloadService downloadService,
+  ) async {
+    final logProvider = Provider.of<LogProvider>(context, listen: false);
+    final extractText =
+        Provider.of<ExtractTextEditingProvider>(context, listen: false);
     if (_cancelExtract) return;
     if (_selectedFormat == null) {
-      _handleError('포맷을 지정해주세요!');
+      logProvider.handleError(context, '포맷을 지정해주세요!');
       return;
     }
 
-    _log("Starting video download");
-    await downloadService.downloadYouTubeVideo(_urlController.text, (progress) {
+    logProvider.log("Starting video download");
+    await downloadService.downloadYouTubeVideo(extractText.url, (progress) {
       setState(() {
         _download_process = progress;
       });
-    }, _log);
-    _log("Video download completed");
+    }, logProvider.log);
+    logProvider.log("Video download completed");
 
     setState(() {
       downloadedFilePath = downloadService.downloadedFilePath;
-      _downloadedFilePathController.text = downloadedFilePath;
+      extractText.downloadedPath = downloadedFilePath;
     });
   }
 
-  Future<void> _startVideoExtraction(DownloadService downloadService) async {
+  Future<void> _startVideoExtraction(
+    BuildContext context,
+    DownloadService downloadService,
+  ) async {
     if (_cancelExtract) return;
+    final logProvider = Provider.of<LogProvider>(context, listen: false);
+    final extractText =
+        Provider.of<ExtractTextEditingProvider>(context, listen: false);
 
     late String startTime;
     late String duration;
     late String outputFilePath;
-    _log("Starting video segment extraction");
+    logProvider.log("Starting video segment extraction");
     startTime =
-        '${_startTimeControllers[0].text}:${_startTimeControllers[1].text}:${_startTimeControllers[2].text}';
+        '${extractText.startTimeControllers[0].text}:${extractText.startTimeControllers[1].text}:${extractText.startTimeControllers[2].text}';
     duration = '${TimeDurationService().isStartTimeBeforeEndTime(
-      startControllers: _startTimeControllers,
-      endControllers: _endTimeControllers,
+      startControllers: extractText.startTimeControllers,
+      endControllers: extractText.endTimeControllers,
     )}';
     setState(() {
       _extract_process = 0.0;
     });
-    if (_fileNameController.text.isEmpty) {
+    if (extractText.fileName.isEmpty) {
       outputFilePath = '/extract_file.${_selectedFormat!.toLowerCase()}';
     } else {
       outputFilePath =
-          '/${_fileNameController.text}.${_selectedFormat!.toLowerCase()}';
+          '/${extractText.fileName}.${_selectedFormat!.toLowerCase()}';
     }
-    await downloadService.extractVideoSegment(startTime, duration,
-        downloadedFilePath, outputFilePath, _selectedFormat!, _log, (progress) {
+    await downloadService.extractVideoSegment(
+        startTime,
+        duration,
+        downloadedFilePath,
+        outputFilePath,
+        _selectedFormat!,
+        logProvider.log, (progress) {
       setState(() {
         _extract_process = progress;
       });
     });
-    _log("Video segment extraction completed");
+    logProvider.log("Video segment extraction completed");
 
     setState(() {
       _extract_process = 1.0;
     });
   }
 
-  Future<void> _deleteOriginalVideo(DownloadService downloadService) async {
-    _log("Deleting original video file");
-    await downloadService.deleteOriginalVideo(_log);
+  Future<void> _deleteOriginalVideo(
+      BuildContext context, DownloadService downloadService) async {
+    final logProvider = Provider.of<LogProvider>(context, listen: false);
+
+    logProvider.log("Deleting original video file");
+    await downloadService.deleteOriginalVideo(logProvider.log);
   }
 
   Future<void> _showExtractionCompleteNotification(
       DownloadService downloadService) async {
     if (_cancelExtract) return;
+    final extractText =
+        Provider.of<ExtractTextEditingProvider>(context, listen: false);
     late String fileName;
-    if (_fileNameController.text.isEmpty) {
+    if (extractText.fileName.isEmpty) {
       fileName = 'extract_file';
     } else {
-      fileName = _fileNameController.text;
+      fileName = extractText.fileName;
     }
     final directoryPath =
         downloadedFilePath.substring(0, downloadedFilePath.lastIndexOf('/'));
     await downloadService.showNotification(
         directoryPath, "${fileName}.${_selectedFormat!.toLowerCase()}");
-  }
-
-  void _handleError(dynamic error) {
-    _log("Error: $error, type: ${error.runtimeType}");
-    if (error is TypeError) {
-      return;
-    }
-    String errorMessage;
-    if (error is ArgumentError) {
-      errorMessage = "URL을 잘못 입력하셨습니다.\nYouTube 주소를 확인해주세요.";
-    } else if (error is PathNotFoundException) {
-      errorMessage = "천천히 눌러 주세요!";
-    } else if (error is Exception) {
-      errorMessage = "알 수 없는 에러가 발생했습니다!";
-    } else {
-      // errorMessage = "알 수 없는 에러가 발생했습니다!";
-      errorMessage = error.toString();
-    }
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return ExtractErrorDialog(context, errorMessage);
-      },
-    );
   }
 
   void _showInvalidTimeRangeDialog() {
@@ -279,66 +264,20 @@ class _ExtractPageState extends State<ExtractPage> {
     );
   }
 
-  void _log(String message) {
-    print(message);
-
-    setState(() {
-      _logs.add(message);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-          );
-        }
-      });
-    });
-  }
-
   void _reset() {
+    final extractText =
+        Provider.of<ExtractTextEditingProvider>(context, listen: false);
+
     setState(() {
       _extractStatus = EXTRACT_STATUS_IDLE;
       _download_process = 0.0;
-      _downloadedFilePathController.clear();
+      extractText.downloadedPathController.clear();
     });
-  }
-
-  Future<void> _getVideoDuration({
-    required BuildContext context,
-  }) async {
-    Future.delayed(Duration(milliseconds: 400));
-    final extract_text =
-        Provider.of<ExtractTextEditingProvider>(context, listen: false);
-    extract_text.url = removeSiParameter(extract_text.url);
-
-    try {
-      setState(() {
-        _isGettingVideoTime = true;
-      });
-      Duration duration =
-          await downloadService.getYouTubeVideoDuration(extract_text.url);
-      setState(() {
-        _videoDuration = duration;
-      });
-      _log('Video duration: ${_videoDuration.inSeconds} seconds');
-      TimeDurationService().setEndTimeControllers(
-        controllers: _endTimeControllers,
-        totalSeconds: _videoDuration.inSeconds,
-      );
-      GetTimeSnackbar(context: context, message: "동영상 시간을 가져왔어요!").show();
-    } catch (e) {
-      _log('Failed to get video duration: $e');
-    } finally {
-      setState(() {
-        _isGettingVideoTime = false;
-      });
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final extract_text =
+    final extractText =
         Provider.of<ExtractTextEditingProvider>(context, listen: false);
 
     return Scaffold(
@@ -363,10 +302,9 @@ class _ExtractPageState extends State<ExtractPage> {
                     ExtractInstructionText(),
                     const SizedBox(height: 16),
                     YouTubeUrlInput(
-                      urlController: extract_text.urlController,
+                      urlController: extractText.urlController,
                       onChanged: (url) async {
-                        await videoDurationService.getVideoDuration(
-                            context: context);
+                        await videoDurationService.getVideoDuration(context);
                       },
                     ),
                     const SizedBox(height: 16),
@@ -388,8 +326,8 @@ class _ExtractPageState extends State<ExtractPage> {
                     ),
                     TimeIntervalSelector(
                       isSegmentEnabled: _isSegmentEnabled,
-                      startTimeControllers: extract_text.startTimeControllers,
-                      endTimeControllers: extract_text.endTimeControllers,
+                      startTimeControllers: extractText.startTimeControllers,
+                      endTimeControllers: extractText.endTimeControllers,
                     ),
                     const SizedBox(height: 16),
                     FormatDropdown(
@@ -402,7 +340,8 @@ class _ExtractPageState extends State<ExtractPage> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    FileNameInput(fileNameController: _fileNameController),
+                    FileNameInput(
+                        fileNameController: extractText.fileNameController),
                     const SizedBox(height: 16),
                     RepaintBoundary(
                       child: AnimatedSwitcher(
@@ -427,7 +366,7 @@ class _ExtractPageState extends State<ExtractPage> {
                                       setState(() {
                                         _isAnimating = true;
                                       });
-                                      await _validateAndDownloadVideo();
+                                      await _validateAndDownloadVideo(context);
                                       setState(() {
                                         _isAnimating = false;
                                       });

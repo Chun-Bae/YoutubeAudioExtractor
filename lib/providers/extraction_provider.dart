@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class ExtractionProvider with ChangeNotifier {
   bool _isGettingVideoTime = false;
   bool isExtracting = false;
-  bool cancelExtract = false;
+  bool _cancelExtract = false;
   double extractProgress = 0.0;
 
   // isGettingVideoTime
@@ -13,13 +13,15 @@ class ExtractionProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void setExtracting(bool value) {
-    isExtracting = value;
+  //cancelExtract
+  bool get cancelExtract => _cancelExtract;
+  set cancelExtract(bool value) {
+    _cancelExtract = value;
     notifyListeners();
   }
 
-  void setCancelExtract(bool value) {
-    cancelExtract = value;
+  void setExtracting(bool value) {
+    isExtracting = value;
     notifyListeners();
   }
 

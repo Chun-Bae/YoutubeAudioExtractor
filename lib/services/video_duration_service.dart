@@ -12,10 +12,8 @@ class VideoDurationService {
 
   VideoDurationService({required this.downloadService});
 
-  Future<void> getVideoDuration({
-    required BuildContext context,
-  }) async {
-    await Future.delayed(Duration(milliseconds: 400));
+  Future<void> getVideoDuration(BuildContext context) async {
+    await Future.delayed(Duration(milliseconds: 1000));
     final extract_text =
         Provider.of<ExtractTextEditingProvider>(context, listen: false);
     final extraction = Provider.of<ExtractionProvider>(context, listen: false);

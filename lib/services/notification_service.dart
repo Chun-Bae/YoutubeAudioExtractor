@@ -38,4 +38,17 @@ class NotificationService {
     await flutterLocalNotificationsPlugin
         .show(0, title, body, platformChannelSpecifics, payload: directoryPath);
   }
+
+  Future<void> showExtractionCompleteNotification({
+    required String downloadedFilePath,
+    required String fileNameWithformat,
+    required bool cancelExtract,
+  }) async {
+    if (cancelExtract) return;
+
+    final directoryPath =
+        downloadedFilePath.substring(0, downloadedFilePath.lastIndexOf('/'));
+    await showNotification(
+        "Extraction Complete", "$fileNameWithformat 다운로드 완료!", directoryPath);
+  }
 }

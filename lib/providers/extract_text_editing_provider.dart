@@ -27,6 +27,34 @@ class ExtractTextEditingProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // fileName
+  String get fileName => fileNameController.text;
+  set fileName(String value) {
+    fileNameController.text = value;
+    notifyListeners();
+  }
+
+  // fileNameWithformat
+  String get fileNameWithformat => fileNameWithformatController.text;
+  set fileNameWithformat(String value) {
+    fileNameWithformatController.text = value;
+    notifyListeners();
+  }
+
+  // downloadedPath
+  String get downloadedPath => downloadedPathController.text;
+  set downloadedPath(String value) {
+    downloadedPathController.text = value;
+    notifyListeners();
+  }
+
+  // extractedPath
+  String get extractedPath => extractedPathController.text;
+  set extractedPath(String value) {
+    extractedPathController.text = value;
+    notifyListeners();
+  }
+
   // durationTime
   String get durationTime => durationTimeController.text;
   set durationTime(String value) {
