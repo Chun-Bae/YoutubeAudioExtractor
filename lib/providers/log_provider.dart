@@ -10,14 +10,18 @@ class LogProvider with ChangeNotifier {
   List<String> get logs => _logs;
   ScrollController get scrollController => _scrollController;
 
-  void log(String message) {
-    print(message); // 콘솔에 로그 출력 (개발자용)
+  void writeLog(String message) {
+    print(message);
     _logs.add(message);
     notifyListeners();
   }
 
   String getErrorMessage(dynamic error) {
-    if (error is ArgumentError) {
+    if (error is ArgumentError && error.message == 'format') {
+      return '포맷을 지정해주세요!';
+    } else if (error is ArgumentError && error.message == 'Download cancelled') {
+      return 'Download cancelled';
+    } else if (error is ArgumentError) {
       return "URL을 잘못 입력하셨습니다.\nYouTube 주소를 확인해주세요.";
     } else if (error is PathNotFoundException) {
       return "천천히 눌러 주세요!";
@@ -30,7 +34,10 @@ class LogProvider with ChangeNotifier {
 
   void handleError(BuildContext context, dynamic error) {
     final errorMessage = getErrorMessage(error);
-    log("Error: $error, type: ${error.runtimeType}");
+    writeLog("Error: $error, type: ${error.runtimeType}");
+    if(errorMessage == 'Download cancelled') {
+      return;
+    }
     showDialog(
       context: context,
       builder: (BuildContext context) {

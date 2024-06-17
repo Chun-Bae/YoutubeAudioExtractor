@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 class ExtractionProvider with ChangeNotifier {
   bool _isGettingVideoTime = false;
-  bool isExtracting = false;
+  bool _isExtracting = false;
   bool _cancelExtract = false;
-  double extractProgress = 0.0;
+  double _extractProgress = 0.0;
 
   // isGettingVideoTime
   bool get isGettingVideoTime => _isGettingVideoTime;
@@ -20,13 +20,17 @@ class ExtractionProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void setExtracting(bool value) {
-    isExtracting = value;
+  // downloadProgress
+  double get extractProgress => _extractProgress;
+  set extractProgress(double progress) {
+    _extractProgress = progress;
     notifyListeners();
   }
 
-  void setExtractProgress(double value) {
-    extractProgress = value;
+  // isExtracting
+  bool get isExtracting => _isExtracting;
+  set isExtracting(bool value) {
+    _isExtracting = value;
     notifyListeners();
   }
 }

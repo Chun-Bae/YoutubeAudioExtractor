@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 class ExtractTextEditingProvider with ChangeNotifier {
+  late String _videoTitle;
+
   final TextEditingController urlController = TextEditingController();
   final TextEditingController fileNameController = TextEditingController();
+  final TextEditingController formatController = TextEditingController();
   final TextEditingController fileNameWithformatController =
       TextEditingController();
   final TextEditingController downloadedPathController =
@@ -20,6 +23,13 @@ class ExtractTextEditingProvider with ChangeNotifier {
   ];
   final TextEditingController durationTimeController = TextEditingController();
 
+  // videoTitle
+  String get videoTitle => _videoTitle;
+  set videoTitle(String value) {
+    _videoTitle = value;
+    notifyListeners();
+  }
+
   // url
   String get url => urlController.text;
   set url(String value) {
@@ -31,6 +41,13 @@ class ExtractTextEditingProvider with ChangeNotifier {
   String get fileName => fileNameController.text;
   set fileName(String value) {
     fileNameController.text = value;
+    notifyListeners();
+  }
+
+  // format
+  String get format => formatController.text;
+  set format(String value) {
+    formatController.text = value;
     notifyListeners();
   }
 
@@ -55,6 +72,11 @@ class ExtractTextEditingProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // startTime: "00:00:00"
+  String get startTime => startTimeControllers.map((e) => e.text).join(':');
+  // endTime: "00:00:00"
+  String get endTime => endTimeControllers.map((e) => e.text).join(':');
+
   // durationTime
   String get durationTime => durationTimeController.text;
   set durationTime(String value) {
@@ -67,6 +89,7 @@ class ExtractTextEditingProvider with ChangeNotifier {
     urlController.dispose();
     fileNameController.dispose();
     fileNameWithformatController.dispose();
+    formatController.dispose();
     downloadedPathController.dispose();
     extractedPathController.dispose();
     for (var controller in startTimeControllers) {

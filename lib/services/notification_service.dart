@@ -1,5 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:provider/provider.dart';
+import 'package:youtube_audio_extractor/providers/download_provider.dart';
+import 'package:youtube_audio_extractor/providers/extraction_provider.dart';
 import 'directory_service.dart';
+import '../providers/extract_text_editing_provider.dart';
 
 class NotificationService {
   final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
@@ -39,16 +44,18 @@ class NotificationService {
         .show(0, title, body, platformChannelSpecifics, payload: directoryPath);
   }
 
-  Future<void> showExtractionCompleteNotification({
-    required String downloadedFilePath,
-    required String fileNameWithformat,
-    required bool cancelExtract,
-  }) async {
-    if (cancelExtract) return;
+  Future<void> showExtractionCompleteNotification(BuildContext context) async {
+    final extractText =
+        Provider.of<ExtractTextEditingProvider>(context, listen: false);
+    final extractionProvider =
+        Provider.of<ExtractionProvider>(context, listen: false);
+    if (extractionProvider.cancelExtract)
+      throw ArgumentError("Download cancelled");
+    ;
 
-    final directoryPath =
-        downloadedFilePath.substring(0, downloadedFilePath.lastIndexOf('/'));
-    await showNotification(
-        "Extraction Complete", "$fileNameWithformat 다운로드 완료!", directoryPath);
+    final directoryPath = extractText.downloadedPath
+        .substring(0, extractText.downloadedPath.lastIndexOf('/'));
+    await showNotification("Extraction Complete",
+        "${extractText.fileNameWithformat} 다운로드 완료!", directoryPath);
   }
 }

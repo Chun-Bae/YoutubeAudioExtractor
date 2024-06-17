@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 
 class DownloadProvider with ChangeNotifier {
-  bool isDownloading = false;
-  double downloadProgress = 0.0;
+  bool _isDownloading = false;
+  double _downloadProgress = 0.0;
 
-  void setDownloading(bool value) {
-    isDownloading = value;
+  // downloadProgress
+  double get downloadProgress => _downloadProgress;
+  set downloadProgress(double progress) {
+    _downloadProgress = progress;
     notifyListeners();
   }
 
-  void setDownloadProgress(double value) {
-    downloadProgress = value;
+  // isDownloading
+  bool get isDownloading => _isDownloading;
+  set isDownloading(bool value) {
+    _isDownloading = value;
     notifyListeners();
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class TimeDurationService {
-  String isStartTimeBeforeEndTime({
+  String StartTimeIntervalEndTime({
     required List<TextEditingController> startControllers,
     required List<TextEditingController> endControllers,
   }) {
