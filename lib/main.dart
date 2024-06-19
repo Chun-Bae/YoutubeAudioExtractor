@@ -5,6 +5,7 @@ import 'providers/download_provider.dart';
 import 'providers/extract_text_editing_provider.dart';
 import 'providers/log_provider.dart';
 import 'app/screens/extract_page.dart';
+import 'app/screens/settings_page.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 void main() async {
@@ -24,11 +25,23 @@ void main() async {
 }
 
 class ExtractApp extends StatelessWidget {
+  Route<dynamic> _generateRoute(RouteSettings settings) {
+    switch (settings.name) {
+      case '/':
+        return MaterialPageRoute(builder: (_) => ExtractPage());
+      case '/settings':
+        return MaterialPageRoute(builder: (_) => SettingsPage());
+      default:
+        throw Exception('Invalid route: ${settings.name}');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: ExtractPage(),
+      initialRoute: '/',
+      onGenerateRoute: _generateRoute,
     );
   }
 }

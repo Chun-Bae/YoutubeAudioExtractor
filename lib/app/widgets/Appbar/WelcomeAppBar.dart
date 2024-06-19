@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../Icon/SettingIcon.dart';
 
 class WelcomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
@@ -24,15 +25,8 @@ class WelcomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
             ),
-            IconButton(
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              iconSize: 26.0,
-              icon: const Icon(
-                Icons.settings_rounded,
-                color: Color(0xFFFF5963),
-              ),
-              onPressed: () {},
+            SettingIcon(
+              onPressed: () => Navigator.pushNamed(context, '/settings'),
             ),
           ],
         ),
