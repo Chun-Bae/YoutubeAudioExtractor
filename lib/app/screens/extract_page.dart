@@ -1,3 +1,4 @@
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:youtube_audio_extractor/providers/download_provider.dart';
 
 import '../widgets/AppBar/WelcomeAppBar.dart';
@@ -19,6 +20,7 @@ import '../../services/ffmpeg_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/permission_service.dart';
 import '../../services/video_duration_service.dart';
+import '../../services/admob_service.dart';
 import '../../models/formatter.dart';
 import '../../models/extract_status.dart';
 import '../../providers/extract_text_editing_provider.dart';
@@ -38,18 +40,31 @@ class ExtractPage extends StatefulWidget {
 class _ExtractPageState extends State<ExtractPage> {
   bool _isSegmentEnabled = false;
   bool _isAnimating = false;
-
+  int _extractStatus = EXTRACT_STATUS_IDLE;
   late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
   late NotificationService notificationService;
   late DownloadService downloadService;
   late VideoDurationService videoDurationService;
-
-  int _extractStatus = EXTRACT_STATUS_IDLE;
+  BannerAd? _bannerAd;
 
   @override
   void initState() {
     super.initState();
     _initializeServices(context);
+    _createBannerAd();
+  }
+
+  void dispose() {
+    super.dispose();
+  }
+
+  void _createBannerAd() {
+    _bannerAd = BannerAd(
+      size: AdSize.banner,
+      adUnitId: AdmobService.bannerAdUnitId!,
+      listener: AdmobService.bannerAdListener,
+      request: AdRequest(),
+    )..load();
   }
 
   void _initializeServices(BuildContext context) async {
@@ -180,6 +195,12 @@ class _ExtractPageState extends State<ExtractPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF14181B),
       appBar: WelcomeAppBar(),
+      bottomNavigationBar: _bannerAd == null
+          ? Container()
+          : Container(
+              height: _bannerAd!.size.height.toDouble(),
+              child: AdWidget(ad: _bannerAd!),
+            ),
       body: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(

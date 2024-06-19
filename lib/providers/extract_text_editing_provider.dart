@@ -77,7 +77,7 @@ class ExtractTextEditingProvider with ChangeNotifier {
   // endTime: "00:00:00"
   String get endTime => endTimeControllers.map((e) => e.text).join(':');
 
-  // durationTime
+  // durationTime "45" (seconds) : "00:00:00"은 변환 유틸 존재
   String get durationTime => durationTimeController.text;
   set durationTime(String value) {
     durationTimeController.text = value;

@@ -5,8 +5,11 @@ import 'providers/download_provider.dart';
 import 'providers/extract_text_editing_provider.dart';
 import 'providers/log_provider.dart';
 import 'app/screens/extract_page.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  MobileAds.instance.initialize();
   runApp(
     MultiProvider(
       providers: [

@@ -28,6 +28,21 @@ class NotificationService {
     });
   }
 
+  Future<void> showExtractionCompleteNotification(BuildContext context) async {
+    final extractText =
+        Provider.of<ExtractTextEditingProvider>(context, listen: false);
+    final extractionProvider =
+        Provider.of<ExtractionProvider>(context, listen: false);
+    if (extractionProvider.cancelExtract)
+      throw ArgumentError("Download cancelled");
+    ;
+
+    final directoryPath = extractText.downloadedPath
+        .substring(0, extractText.downloadedPath.lastIndexOf('/'));
+    await showNotification("${extractText.videoTitle}",
+        "${extractText.fileNameWithformat} 다운로드 완료!", directoryPath);
+  }
+
   Future<void> showNotification(
       String title, String body, String directoryPath) async {
     const androidPlatformChannelSpecifics = AndroidNotificationDetails(
@@ -42,20 +57,5 @@ class NotificationService {
         iOS: iOSPlatformChannelSpecifics);
     await flutterLocalNotificationsPlugin
         .show(0, title, body, platformChannelSpecifics, payload: directoryPath);
-  }
-
-  Future<void> showExtractionCompleteNotification(BuildContext context) async {
-    final extractText =
-        Provider.of<ExtractTextEditingProvider>(context, listen: false);
-    final extractionProvider =
-        Provider.of<ExtractionProvider>(context, listen: false);
-    if (extractionProvider.cancelExtract)
-      throw ArgumentError("Download cancelled");
-    ;
-
-    final directoryPath = extractText.downloadedPath
-        .substring(0, extractText.downloadedPath.lastIndexOf('/'));
-    await showNotification("Extraction Complete",
-        "${extractText.fileNameWithformat} 다운로드 완료!", directoryPath);
   }
 }

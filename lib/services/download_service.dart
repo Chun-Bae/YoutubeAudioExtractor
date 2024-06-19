@@ -155,7 +155,7 @@ class DownloadService {
     await extractVideoSegment(
       startTime: extractText.startTime,
       duration: extractText.durationTime,
-      inputFilePath: extractText.downloadedPath!,
+      inputFilePath: extractText.downloadedPath,
       outputFileWithFormatName: extractText.fileNameWithformat,
       formatCommand: extractText.format,
       log: logProvider.writeLog,
