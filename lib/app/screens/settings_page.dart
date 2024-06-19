@@ -54,9 +54,7 @@ class SettingsPage extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            onTap: () {
-              // Navigate to Help Page
-            },
+            onTap: () => Navigator.pushNamed(context, '/settings/help'),
           ),
           ListTile(
             leading: Icon(

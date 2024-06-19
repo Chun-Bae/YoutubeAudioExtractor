@@ -6,6 +6,7 @@ import 'providers/extract_text_editing_provider.dart';
 import 'providers/log_provider.dart';
 import 'app/screens/extract_page.dart';
 import 'app/screens/settings_page.dart';
+import 'app/screens/help_page.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 void main() async {
@@ -31,6 +32,8 @@ class ExtractApp extends StatelessWidget {
         return MaterialPageRoute(builder: (_) => ExtractPage());
       case '/settings':
         return MaterialPageRoute(builder: (_) => SettingsPage());
+      case '/settings/help':
+        return MaterialPageRoute(builder: (_) => HelpPage());
       default:
         throw Exception('Invalid route: ${settings.name}');
     }
