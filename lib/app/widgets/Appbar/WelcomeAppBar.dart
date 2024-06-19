@@ -8,12 +8,33 @@ class WelcomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     return AppBar(
       backgroundColor: const Color(0xFF14181B),
-      title: Text(
-        '환영해요!',
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
+      titleSpacing: 0.0,
+      title: Container(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: <Widget>[
+            const Padding(
+              padding: EdgeInsets.only(left: 10.0),
+              child: Text(
+                '환영해요!',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              iconSize: 26.0,
+              icon: const Icon(
+                Icons.settings_rounded,
+                color: Color(0xFFFF5963),
+              ),
+              onPressed: () {},
+            ),
+          ],
         ),
       ),
     );
