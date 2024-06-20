@@ -184,7 +184,6 @@ class _ExtractPageState extends State<ExtractPage> {
         Provider.of<DownloadProvider>(context, listen: false);
     final extractionProvider =
         Provider.of<ExtractionProvider>(context, listen: false);
-    final adProvider = Provider.of<AdProvider>(context, listen: false);
 
     return Scaffold(
       backgroundColor: const Color(0xFF14181B),
