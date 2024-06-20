@@ -26,6 +26,7 @@ import '../../models/extract_status.dart';
 import '../../providers/extract_text_editing_provider.dart';
 import '../../providers/extraction_provider.dart';
 import '../../providers/log_provider.dart';
+import '../../providers/ad_provider.dart';
 
 import 'package:flutter/material.dart';
 import 'dart:async';
@@ -45,26 +46,18 @@ class _ExtractPageState extends State<ExtractPage> {
   late NotificationService notificationService;
   late DownloadService downloadService;
   late VideoDurationService videoDurationService;
-  BannerAd? _bannerAd;
 
   @override
   void initState() {
     super.initState();
+    Provider.of<AdProvider>(context, listen: false).createBannerAd();
     _initializeServices(context);
-    _createBannerAd();
   }
 
+  @override
   void dispose() {
     super.dispose();
-  }
-
-  void _createBannerAd() {
-    _bannerAd = BannerAd(
-      size: AdSize.banner,
-      adUnitId: AdmobService.bannerAdUnitId!,
-      listener: AdmobService.bannerAdListener,
-      request: AdRequest(),
-    )..load();
+    Provider.of<AdProvider>(context, listen: false).disposeAd();
   }
 
   void _initializeServices(BuildContext context) async {
@@ -191,16 +184,23 @@ class _ExtractPageState extends State<ExtractPage> {
         Provider.of<DownloadProvider>(context, listen: false);
     final extractionProvider =
         Provider.of<ExtractionProvider>(context, listen: false);
+    final adProvider = Provider.of<AdProvider>(context, listen: false);
 
     return Scaffold(
       backgroundColor: const Color(0xFF14181B),
       appBar: WelcomeAppBar(),
-      bottomNavigationBar: _bannerAd == null
-          ? Container()
-          : Container(
-              height: _bannerAd!.size.height.toDouble(),
-              child: AdWidget(ad: _bannerAd!),
-            ),
+      bottomNavigationBar: Consumer<AdProvider>(
+        builder: (context, adProvider, child) {
+          if (adProvider.isAdLoaded && adProvider.bannerAd != null) {
+            return Container(
+              height: adProvider.bannerAd!.size.height.toDouble(),
+              child: AdWidget(ad: adProvider.bannerAd!),
+            );
+          } else {
+            return Container();
+          }
+        },
+      ),
       body: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(

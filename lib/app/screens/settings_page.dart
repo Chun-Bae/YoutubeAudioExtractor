@@ -1,8 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_email_sender/flutter_email_sender.dart';
+import 'package:youtube_audio_extractor/providers/ad_provider.dart';
+import '../../services/admob_service.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:provider/provider.dart';
+import '../../providers/ad_provider.dart';
 
-class SettingsPage extends StatelessWidget {
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  _SettingsPageState createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+  BannerAd? _bannerAd;
+
+  @override
+  void initState() {
+    super.initState();
+    Provider.of<AdProvider>(context, listen: false).createBannerAd();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    Provider.of<AdProvider>(context, listen: false).disposeAd();
+  }
 
   Future<void> _sendFeedbackEmail(BuildContext context) async {
     final Email email = Email(
@@ -25,7 +49,7 @@ class SettingsPage extends StatelessWidget {
           return AlertDialog(
             title: Text('오류'),
             content: Text(
-                '이메일 클라이언트를 찾을 수 없습니다. 이메일 클라이언트가 설치되어 있는지 확인해주세요.\n\n기본 메일 앱을 사용할 수 없기 때문에 앱에서 바로 문의를 전송하기 어려운 상황입니다.\n\n아래 이메일로 연락주시면 친절하게 답변해드릴게요 :)\n\ndbtjrdla2056@gmail.com'),
+                '이메일 클라이언트를 찾을 수 없습니다. 이메일 클라이언트가 설치되어 있는지 확인해주세요.\n\n기본 메일 앱을 사용할 수 없기 때문에 앱에서 바로 문의를 전송하기 어려운 상황입니다.\n\n아래 이메일로 연락주시면 친절하게 답변해드릴게요! :)\n\ndbtjrdla2056@gmail.com'),
             actions: [
               TextButton(
                 onPressed: () {
@@ -42,6 +66,7 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final adProvider = Provider.of<AdProvider>(context, listen: false);
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF14181B),
@@ -59,6 +84,12 @@ class SettingsPage extends StatelessWidget {
           ),
         ),
       ),
+      bottomNavigationBar: adProvider.isAdLoaded
+          ? Container(
+              height: adProvider.bannerAd!.size.height.toDouble(),
+              child: AdWidget(ad: adProvider.bannerAd!),
+            )
+          : Container(),
       backgroundColor: const Color(0xFF14181B),
       body: ListView(
         children: [

@@ -4,10 +4,12 @@ import 'providers/extraction_provider.dart';
 import 'providers/download_provider.dart';
 import 'providers/extract_text_editing_provider.dart';
 import 'providers/log_provider.dart';
+import 'providers/ad_provider.dart';
 import 'app/screens/extract_page.dart';
 import 'app/screens/settings_page.dart';
 import 'app/screens/help_page.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +21,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => DownloadProvider()),
         ChangeNotifierProvider(create: (_) => ExtractionProvider()),
         ChangeNotifierProvider(create: (_) => LogProvider()),
+        ChangeNotifierProvider(create: (_) => AdProvider()),
       ],
       child: ExtractApp(),
     ),
