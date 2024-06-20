@@ -1,7 +1,44 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_email_sender/flutter_email_sender.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
+
+  Future<void> _sendFeedbackEmail(BuildContext context) async {
+    final Email email = Email(
+      body: '',
+      subject: '[유튜브 추출기 문의]',
+      recipients: ['dbtjrdla2056@gmail.com'],
+      cc: [],
+      bcc: [],
+      attachmentPaths: [],
+      isHTML: false,
+    );
+
+    try {
+      await FlutterEmailSender.send(email);
+    } catch (error) {
+      print('Error: $error');
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('오류'),
+            content: Text(
+                '이메일 클라이언트를 찾을 수 없습니다. 이메일 클라이언트가 설치되어 있는지 확인해주세요.\n\n기본 메일 앱을 사용할 수 없기 때문에 앱에서 바로 문의를 전송하기 어려운 상황입니다.\n\n아래 이메일로 연락주시면 친절하게 답변해드릴게요 :)\n\ndbtjrdla2056@gmail.com'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text('확인'),
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,9 +106,7 @@ class SettingsPage extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            onTap: () {
-              // Navigate to Feedback Page
-            },
+            onTap: () => _sendFeedbackEmail(context),
           ),
           ListTile(
             leading: Icon(
