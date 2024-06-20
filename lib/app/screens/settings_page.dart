@@ -3,6 +3,7 @@ import 'package:youtube_audio_extractor/providers/ad_provider.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import '../../services/send_feedback_email_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -24,6 +25,15 @@ class _SettingsPageState extends State<SettingsPage> {
   void dispose() {
     super.dispose();
     Provider.of<AdProvider>(context, listen: false).disposeAd();
+  }
+
+  Future<void> _launchURL(String url) async {
+    final Uri uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      throw 'Could not launch $url';
+    }
   }
 
   Widget _settingListTile({
@@ -111,7 +121,8 @@ class _SettingsPageState extends State<SettingsPage> {
           _settingListTile(
             title: '개인정보처리방침',
             icon: Icons.privacy_tip_outlined,
-            onTap: () => {},
+            onTap: () =>
+                _launchURL('https://sites.google.com/view/yt-extract-privacy/'),
           ),
           _settingListTile(
             title: '서비스 약관',
@@ -122,7 +133,7 @@ class _SettingsPageState extends State<SettingsPage> {
             padding: const EdgeInsets.all(16.0),
             child: Center(
               child: Text(
-                '© 2024. _bull, All rights reserved.',
+                '© 2024. bull_, All rights reserved.',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey,

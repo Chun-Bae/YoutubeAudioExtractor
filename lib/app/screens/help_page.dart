@@ -11,7 +11,7 @@ class HelpPage extends StatelessWidget {
         padding: EdgeInsets.all(8.0),
         decoration: BoxDecoration(
           border:
-              Border.all(color: Color.fromARGB(255, 255, 255, 255), width: 2.0),
+              Border.all(color: Color.fromARGB(255, 146, 146, 146), width: 1.0),
         ),
         child: Image.asset(
           imagePath,
@@ -28,7 +28,7 @@ class HelpPage extends StatelessWidget {
         padding: EdgeInsets.all(20.0),
         decoration: BoxDecoration(
           border:
-              Border.all(color: Color.fromARGB(255, 255, 255, 255), width: 2.0),
+              Border.all(color: Color.fromARGB(255, 146, 146, 146), width: 1.0),
         ),
         child: Image.asset(
           imagePath,
