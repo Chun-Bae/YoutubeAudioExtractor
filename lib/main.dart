@@ -11,7 +11,7 @@ import 'app/screens/extract_page.dart';
 import 'app/screens/settings_page.dart';
 import 'app/screens/help_page.dart';
 import 'app/screens/terms_page.dart';
-
+import 'app/screens/license_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MobileAds.instance.initialize();
@@ -40,6 +40,8 @@ class ExtractApp extends StatelessWidget {
         return MaterialPageRoute(builder: (_) => HelpPage());
       case '/settings/terms':
         return MaterialPageRoute(builder: (_) => TermsPage());
+      case '/settings/license':
+        return MaterialPageRoute(builder: (_) => AppLicensePage());
       default:
         throw Exception('Invalid route: ${settings.name}');
     }

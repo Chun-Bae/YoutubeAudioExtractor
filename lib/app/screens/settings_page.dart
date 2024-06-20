@@ -120,6 +120,11 @@ class _SettingsPageState extends State<SettingsPage> {
             onTap: () => _sendFeedbackEmailService.sendFeedbackEmail(context),
           ),
           _settingListTile(
+            title: '라이선스 정보',
+            icon: Icons.info_outline,
+            onTap: () => Navigator.pushNamed(context, '/settings/license'),
+          ),
+          _settingListTile(
             title: '개인정보처리방침',
             icon: Icons.privacy_tip_outlined,
             onTap: () =>
