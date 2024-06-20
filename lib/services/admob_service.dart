@@ -12,7 +12,15 @@ class AdmobService {
       throw UnsupportedError('Unsupported platform');
     }
   }
-
+  static String? get interstitialAdUnitId {
+    if (Platform.isAndroid) {
+      return 'ca-app-pub-6519817120789589/6570411968';
+    } else if (Platform.isIOS) {
+      return 'ca-app-pub-6519817120789589/6570411968';
+    } else {
+      throw UnsupportedError('Unsupported platform');
+    }
+  }
   static final BannerAdListener bannerAdListener = BannerAdListener(
     onAdLoaded: (Ad ad) => print('Ad loaded: ${ad.adUnitId}.'),
     onAdFailedToLoad: (Ad ad, LoadAdError error) {

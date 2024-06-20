@@ -79,7 +79,7 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       bottomNavigationBar: Consumer<AdProvider>(
         builder: (context, adProvider, child) {
-          if (adProvider.isAdLoaded && adProvider.bannerAd != null) {
+          if (adProvider.isBannerAdLoaded && adProvider.bannerAd != null) {
             return Container(
               height: adProvider.bannerAd!.size.height.toDouble(),
               child: AdWidget(ad: adProvider.bannerAd!),

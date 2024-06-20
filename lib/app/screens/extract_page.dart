@@ -20,7 +20,6 @@ import '../../services/ffmpeg_service.dart';
 import '../../services/notification_service.dart';
 import '../../services/permission_service.dart';
 import '../../services/video_duration_service.dart';
-import '../../services/admob_service.dart';
 import '../../models/formatter.dart';
 import '../../models/extract_status.dart';
 import '../../providers/extract_text_editing_provider.dart';
@@ -51,6 +50,7 @@ class _ExtractPageState extends State<ExtractPage> {
   void initState() {
     super.initState();
     Provider.of<AdProvider>(context, listen: false).createBannerAd();
+    Provider.of<AdProvider>(context, listen: false).createInterstitialAd();
     _initializeServices(context);
   }
 
@@ -79,6 +79,7 @@ class _ExtractPageState extends State<ExtractPage> {
   }
 
   Future<void> _validateAndDownloadVideo(BuildContext context) async {
+    final adProvider = Provider.of<AdProvider>(context, listen: false);
     final logProvider = Provider.of<LogProvider>(context, listen: false);
     final extractText =
         Provider.of<ExtractTextEditingProvider>(context, listen: false);
@@ -86,16 +87,20 @@ class _ExtractPageState extends State<ExtractPage> {
     setState(() {
       _isAnimating = true;
     });
+
     if (TimeValidationService().isStartTimeBeforeEndTime(
       startControllers: extractText.startTimeControllers,
       endControllers: extractText.endTimeControllers,
     )) {
       logProvider.writeLog("Time validation passed");
+
+      adProvider.showInterstitialAd();
       await _downloadVideo(context);
     } else {
       logProvider.writeLog("Time validation failed");
       _showInvalidTimeRangeDialog();
     }
+
     setState(() {
       _isAnimating = false;
     });
@@ -190,7 +195,7 @@ class _ExtractPageState extends State<ExtractPage> {
       appBar: WelcomeAppBar(),
       bottomNavigationBar: Consumer<AdProvider>(
         builder: (context, adProvider, child) {
-          if (adProvider.isAdLoaded && adProvider.bannerAd != null) {
+          if (adProvider.isBannerAdLoaded && adProvider.bannerAd != null) {
             return Container(
               height: adProvider.bannerAd!.size.height.toDouble(),
               child: AdWidget(ad: adProvider.bannerAd!),

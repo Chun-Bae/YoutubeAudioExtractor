@@ -4,10 +4,13 @@ import '../../services/admob_service.dart';
 
 class AdProvider with ChangeNotifier {
   BannerAd? _bannerAd;
-  bool _isAdLoaded = false;
+  InterstitialAd? _interstitialAd;
+  bool _isBannerAdLoaded = false;
+  bool _isInterstitialAdLoaded = false;
 
   BannerAd? get bannerAd => _bannerAd;
-  bool get isAdLoaded => _isAdLoaded;
+  bool get isBannerAdLoaded => _isBannerAdLoaded;
+  bool get isInterstitialAdLoaded => _isInterstitialAdLoaded;
 
   void createBannerAd() {
     _bannerAd = BannerAd(
@@ -15,12 +18,12 @@ class AdProvider with ChangeNotifier {
       adUnitId: AdmobService.bannerAdUnitId!,
       listener: BannerAdListener(
         onAdLoaded: (ad) {
-          _isAdLoaded = true;
+          _isBannerAdLoaded = true;
           notifyListeners();
         },
         onAdFailedToLoad: (ad, error) {
           ad.dispose();
-          _isAdLoaded = false;
+          _isBannerAdLoaded = false;
           notifyListeners();
         },
       ),
@@ -28,10 +31,50 @@ class AdProvider with ChangeNotifier {
     )..load();
   }
 
+  void createInterstitialAd() {
+    InterstitialAd.load(
+      adUnitId: AdmobService.interstitialAdUnitId!,
+      request: AdRequest(),
+      adLoadCallback: InterstitialAdLoadCallback(
+        onAdLoaded: (ad) {
+          _interstitialAd = ad;
+          _isInterstitialAdLoaded = true;
+          notifyListeners();
+        },
+        onAdFailedToLoad: (error) {
+          _isInterstitialAdLoaded = false;
+          notifyListeners();
+        },
+      ),
+    );
+  }
+
+  void showInterstitialAd() {
+    if (_isInterstitialAdLoaded && _interstitialAd != null) {
+      _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdDismissedFullScreenContent: (ad) {
+          ad.dispose();
+          _isInterstitialAdLoaded = false;
+          createInterstitialAd();
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          ad.dispose();
+          _isInterstitialAdLoaded = false;
+          createInterstitialAd();
+        },
+      );
+      _interstitialAd!.show();
+      _interstitialAd = null;
+    }
+  }
+
   void disposeAd() {
     _bannerAd?.dispose();
     _bannerAd = null;
-    _isAdLoaded = false;
+    _isBannerAdLoaded = false;
+    _interstitialAd?.dispose();
+    _interstitialAd = null;
+    _isInterstitialAdLoaded = false;
     notifyListeners();
   }
 }

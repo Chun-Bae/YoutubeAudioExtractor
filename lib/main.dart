@@ -65,7 +65,7 @@ class ExtractApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      initialRoute: termsAgreed ? '/terms-agreement' : '/',
+      initialRoute: termsAgreed ? '/' : '/terms-agreement',
       onGenerateRoute: _generateRoute,
     );
   }
