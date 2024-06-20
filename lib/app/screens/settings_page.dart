@@ -91,6 +91,7 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       backgroundColor: const Color(0xFF14181B),
       body: ListView(
+        padding: const EdgeInsets.all(10.0),
         children: [
           const Padding(
             padding: EdgeInsets.only(left: 16.0),
@@ -127,7 +128,7 @@ class _SettingsPageState extends State<SettingsPage> {
           _settingListTile(
             title: '서비스 약관',
             icon: Icons.article_outlined,
-            onTap: () => {},
+            onTap: () => Navigator.pushNamed(context, '/settings/terms'),
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),

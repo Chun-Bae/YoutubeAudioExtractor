@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+
 import 'providers/extraction_provider.dart';
 import 'providers/download_provider.dart';
 import 'providers/extract_text_editing_provider.dart';
@@ -8,8 +10,7 @@ import 'providers/ad_provider.dart';
 import 'app/screens/extract_page.dart';
 import 'app/screens/settings_page.dart';
 import 'app/screens/help_page.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
-
+import 'app/screens/terms_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +38,8 @@ class ExtractApp extends StatelessWidget {
         return MaterialPageRoute(builder: (_) => SettingsPage());
       case '/settings/help':
         return MaterialPageRoute(builder: (_) => HelpPage());
+      case '/settings/terms':
+        return MaterialPageRoute(builder: (_) => TermsPage());
       default:
         throw Exception('Invalid route: ${settings.name}');
     }

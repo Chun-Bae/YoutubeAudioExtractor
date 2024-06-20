@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
 class HelpPage extends StatelessWidget {
-  const HelpPage({super.key});
-
   Widget _HelpUsingMethod({required String imagePath}) {
     return Padding(
       padding: EdgeInsets.all(16.0),
@@ -59,6 +57,7 @@ class HelpPage extends StatelessWidget {
       ),
       backgroundColor: const Color(0xFF14181B),
       body: ListView(
+        padding: const EdgeInsets.all(10.0),
         children: [
           const Padding(
             padding: EdgeInsets.only(left: 16.0),
@@ -209,7 +208,7 @@ class HelpPage extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Text(
-              "다운로드 위치는 \n'내 파일' > '내장 메모리' > 'Documents' 폴더입니다.\n아래 그림을 통해 자세히 확인할 수 있습니다. ", 
+              "다운로드 위치는 \n'내 파일' > '내장 메모리' > 'Documents' 폴더입니다.\n아래 그림을 통해 자세히 확인할 수 있습니다. ",
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 14,
