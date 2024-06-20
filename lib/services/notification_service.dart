@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:provider/provider.dart';
-import 'package:youtube_audio_extractor/providers/download_provider.dart';
 import 'package:youtube_audio_extractor/providers/extraction_provider.dart';
 import 'directory_service.dart';
 import '../providers/extract_text_editing_provider.dart';
