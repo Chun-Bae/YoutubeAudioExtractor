@@ -9,7 +9,7 @@ Widget ExtractErrorDialog(BuildContext context, String errorMessage) {
     surfaceTintColor: Color(0xFF0E0E0E),
     contentPadding: EdgeInsets.all(30),
     title: const Text(
-      "Error",
+      "오류",
       style: TextStyle(
         color: Colors.white,
         fontSize: 18,

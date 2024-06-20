@@ -8,6 +8,14 @@ Widget InvalidTimeRangeDialog(BuildContext context) {
     backgroundColor: Color(0xFF0E0E0E),
     surfaceTintColor: Color(0xFF0E0E0E),
     contentPadding: EdgeInsets.all(30),
+    title: const Text(
+      "오류",
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
     content: Text(
       '구간이 잘못됐습니다!',
       style: TextStyle(
