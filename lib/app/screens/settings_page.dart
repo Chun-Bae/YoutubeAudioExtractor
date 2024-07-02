@@ -77,18 +77,18 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ),
       ),
-      bottomNavigationBar: Consumer<AdProvider>(
-        builder: (context, adProvider, child) {
-          if (adProvider.isBannerAdLoaded && adProvider.bannerAd != null) {
-            return Container(
-              height: adProvider.bannerAd!.size.height.toDouble(),
-              child: AdWidget(ad: adProvider.bannerAd!),
-            );
-          } else {
-            return Container();
-          }
-        },
-      ),
+      // bottomNavigationBar: Consumer<AdProvider>(
+      //   builder: (context, adProvider, child) {
+      //     if (adProvider.isBannerAdLoaded && adProvider.bannerAd != null) {
+      //       return Container(
+      //         height: adProvider.bannerAd!.size.height.toDouble(),
+      //         child: AdWidget(ad: adProvider.bannerAd!),
+      //       );
+      //     } else {
+      //       return Container();
+      //     }
+      //   },
+      // ),
       backgroundColor: const Color(0xFF14181B),
       body: ListView(
         padding: const EdgeInsets.all(10.0),

@@ -78,7 +78,7 @@ class SendFeedbackEmailService {
     );
 
     try {
-      throw 'Error';
+      // throw 'Error';
       await FlutterEmailSender.send(email);
     } catch (error) {
       print('Error: $error');

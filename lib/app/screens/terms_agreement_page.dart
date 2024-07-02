@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../screens/extract_page.dart';
+import '../screens/first_help_page.dart';
 class TermsAgreementPage extends StatelessWidget {
   const TermsAgreementPage({super.key});
 
@@ -8,7 +8,7 @@ class TermsAgreementPage extends StatelessWidget {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setBool('termsAgreed', true);
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => ExtractPage()),
+      MaterialPageRoute(builder: (context) => FirstHelpPage()),
       (Route<dynamic> route) => false,
     );
   }

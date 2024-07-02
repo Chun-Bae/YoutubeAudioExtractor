@@ -79,7 +79,6 @@ class _ExtractPageState extends State<ExtractPage> {
   }
 
   Future<void> _validateAndDownloadVideo(BuildContext context) async {
-    final adProvider = Provider.of<AdProvider>(context, listen: false);
     final logProvider = Provider.of<LogProvider>(context, listen: false);
     final extractText =
         Provider.of<ExtractTextEditingProvider>(context, listen: false);
@@ -94,7 +93,6 @@ class _ExtractPageState extends State<ExtractPage> {
     )) {
       logProvider.writeLog("Time validation passed");
 
-      adProvider.showInterstitialAd();
       await _downloadVideo(context);
     } else {
       logProvider.writeLog("Time validation failed");
@@ -114,6 +112,7 @@ class _ExtractPageState extends State<ExtractPage> {
     final extractionProvider =
         Provider.of<ExtractionProvider>(context, listen: false);
     final logProvider = Provider.of<LogProvider>(context, listen: false);
+    final adProvider = Provider.of<AdProvider>(context, listen: false);
 
     try {
       DownloadService.cancelInitDownload();
@@ -122,6 +121,7 @@ class _ExtractPageState extends State<ExtractPage> {
         _extractStatus = EXTRACT_STATUS_EXTRACTING;
       });
       await downloadService.startVideoDownload(context);
+      adProvider.showInterstitialAd();
       await downloadService.startVideoExtraction(context);
       await downloadService.deleteOriginalVideo(context);
       await notificationService.showExtractionCompleteNotification(context);
@@ -193,18 +193,18 @@ class _ExtractPageState extends State<ExtractPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF14181B),
       appBar: WelcomeAppBar(),
-      bottomNavigationBar: Consumer<AdProvider>(
-        builder: (context, adProvider, child) {
-          if (adProvider.isBannerAdLoaded && adProvider.bannerAd != null) {
-            return Container(
-              height: adProvider.bannerAd!.size.height.toDouble(),
-              child: AdWidget(ad: adProvider.bannerAd!),
-            );
-          } else {
-            return Container();
-          }
-        },
-      ),
+      // bottomNavigationBar: Consumer<AdProvider>(
+      //   builder: (context, adProvider, child) {
+      //     if (adProvider.isBannerAdLoaded && adProvider.bannerAd != null) {
+      //       return Container(
+      //         height: adProvider.bannerAd!.size.height.toDouble(),
+      //         child: AdWidget(ad: adProvider.bannerAd!),
+      //       );
+      //     } else {
+      //       return Container();
+      //     }
+      //   },
+      // ),
       body: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(
